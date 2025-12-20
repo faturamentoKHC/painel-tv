@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel TV</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      overflow: hidden;
+    }
+
+    iframe {
+      border: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+
+<script>
+  const apps = [
+    {
+      url: "https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/97aef351-f78f-4762-918c-56683f53afad?hidenavbar=true",
+      tempo: 60000 // 60s
+    },
+    {
+      url: "https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/2565085e-7689-4bea-ad71-8a089d220c33?hidenavbar=true",
+      tempo: 30000 // 30s
+    }
+  ];
+
+  let index = 0;
+  let frame;
+
+  window.onload = () => {
+    frame = document.getElementById("appFrame");
+
+    // carrega o primeiro app
+    frame.src = apps[0].url;
+
+    // delay inicial de estabilização (CRÍTICO)
+    setTimeout(() => {
+      iniciarRotacao();
+    }, 5000); // 5 segundos
+  };
+
+  function iniciarRotacao() {
+    setTimeout(function trocar() {
+      index = (index + 1) % apps.length;
+      frame.src = apps[index].url;
+
+      setTimeout(trocar, apps[index].tempo);
+    }, apps[index].tempo);
+  }
+</script>
+</head>
+
+<body>
+  <iframe
+    id="appFrame"
+    src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/97aef351-f78f-4762-918c-56683f53afad?hidenavbar=true"
+    allow="fullscreen"
+  ></iframe>
+</body>
+</html>
