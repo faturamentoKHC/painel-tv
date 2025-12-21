@@ -7,63 +7,77 @@
   <style>
     html, body {
       margin: 0;
-      padding: 0;
       width: 100%;
       height: 100%;
       background: black;
       overflow: hidden;
     }
-
-    iframe {
-      border: 0;
+    
+    #container {
+      position: relative;
       width: 100vw;
       height: 100vh;
+    }
+    
+    .frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      z-index: 1;
+      transition: opacity 0.8s ease-in-out;
+    }
+    
+    .frame iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    
+    .frame.ativo {
+      opacity: 1;
+      z-index: 2;
     }
   </style>
 
 <script>
-  const apps = [
-    {
-      url: "https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/97aef351-f78f-4762-918c-56683f53afad?hidenavbar=true",
-      tempo: 120000 // 2m
-    },
-    {
-      url: "https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/2565085e-7689-4bea-ad71-8a089d220c33?hidenavbar=true",
-      tempo: 60000 // 1m
-    }
+  const frames = [
+    { id: "frame1", tempo: 60000 },
+    { id: "frame2", tempo: 30000 }
   ];
 
   let index = 0;
-  let frame;
 
-  window.onload = () => {
-    frame = document.getElementById("appFrame");
+  function alternar() {
+    const atual = document.getElementById(frames[index].id);
+    atual.classList.remove("ativo");
 
-    // carrega o primeiro app
-    frame.src = apps[0].url;
+    index = (index + 1) % frames.length;
 
-    // delay inicial de estabilização (CRÍTICO)
-    setTimeout(() => {
-      iniciarRotacao();
-    }, 5000); // 5 segundos
-  };
+    const proximo = document.getElementById(frames[index].id);
+    proximo.classList.add("ativo");
 
-  function iniciarRotacao() {
-    setTimeout(function trocar() {
-      index = (index + 1) % apps.length;
-      frame.src = apps[index].url;
-
-      setTimeout(trocar, apps[index].tempo);
-    }, apps[index].tempo);
+    setTimeout(alternar, frames[index].tempo);
   }
+
+  // delay inicial para Power Apps estabilizar
+  setTimeout(() => {
+    setTimeout(alternar, frames[0].tempo);
+  }, 5000);
 </script>
 </head>
 
 <body>
-  <iframe
-    id="appFrame"
-    src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/97aef351-f78f-4762-918c-56683f53afad?hidenavbar=true"
-    allow="fullscreen"
-  ></iframe>
+  <div id="container">
+  <div class="frame ativo" id="frame1">
+    <iframe src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/97aef351-f78f-4762-918c-56683f53afad?hidenavbar=true"></iframe>
+  </div>
+
+  <div class="frame" id="frame2">
+    <iframe src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/2565085e-7689-4bea-ad71-8a089d220c33?hidenavbar=true"></iframe>
+  </div>
+</div>
 </body>
 </html>
