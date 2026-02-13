@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Launcher PowerApps</title>
+</head>
+<body>
+
+<script>
+    (function () {
+
+        const userAgent = navigator.userAgent.toLowerCase();
+
+        const isTV =
+            userAgent.includes("netcast") ||
+            userAgent.includes("smarttv") ||
+            userAgent.includes("smart-tv") ||
+            userAgent.includes("webos") ||
+            userAgent.includes("tizen") ||
+            userAgent.includes("linux arc");
+
+        const deviceType = isTV ? "TV" : "PC";
+
+        // 🔽 COLE AQUI O LINK COMPLETO DO SEU APP
+        const powerAppUrl = "https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/2565085e-7689-4bea-ad71-8a089d220c33?tenantId=3ce34e42-c07d-47bb-b72a-4ce606de6b88&hint=876d03ad-c2ca-4368-9e6f-f57f9719e2e7&sourcetime=1754761489227&hidenavbar=true#";
+
+        const separator = powerAppUrl.includes("?") ? "&" : "?";
+
+        const finalUrl = powerAppUrl + separator + "Device=" + deviceType;
+
+        window.location.replace(finalUrl);
+
+    })();
+</script>
+
+</body>
+</html>
