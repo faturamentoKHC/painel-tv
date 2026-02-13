@@ -2,43 +2,13 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Teste Detector TV</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 40px;
-            background: #ffffff;
-        }
-
-        .box {
-            border: 2px solid #000;
-            padding: 20px;
-            margin-bottom: 20px;
-            font-size: 18px;
-            word-break: break-all;
-        }
-
-        .result {
-            font-weight: bold;
-            font-size: 22px;
-        }
-    </style>
+    <title>Launcher PowerApps</title>
 </head>
 <body>
 
-    <div class="box">
-        Alô Mundo
-    </div>
+<script>
+    (function () {
 
-    <div class="box" id="browserInfo">
-        Carregando...
-    </div>
-
-    <div class="box result" id="deviceResult">
-        Detectando dispositivo...
-    </div>
-
-    <script>
         const userAgent = navigator.userAgent.toLowerCase();
 
         const isTV =
@@ -49,11 +19,19 @@
             userAgent.includes("tizen") ||
             userAgent.includes("linux arc");
 
-        document.getElementById("browserInfo").innerText = navigator.userAgent;
+        const deviceType = isTV ? "TV" : "PC";
 
-        document.getElementById("deviceResult").innerText =
-            isTV ? "Dispositivo detectado: TV" : "Dispositivo detectado: PC";
-    </script>
+        // 🔽 COLE AQUI O LINK COMPLETO DO SEU APP
+        const powerAppUrl = "https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/2565085e-7689-4bea-ad71-8a089d220c33?tenantId=3ce34e42-c07d-47bb-b72a-4ce606de6b88&hint=876d03ad-c2ca-4368-9e6f-f57f9719e2e7&sourcetime=1754761489227&hidenavbar=true#";
+
+        const separator = powerAppUrl.includes("?") ? "&" : "?";
+
+        const finalUrl = powerAppUrl + separator + "Device=" + deviceType;
+
+        window.location.replace(finalUrl);
+
+    })();
+</script>
 
 </body>
 </html>
