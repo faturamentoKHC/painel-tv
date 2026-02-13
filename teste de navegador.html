@@ -2,20 +2,25 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Teste Navegador</title>
+    <title>Teste Detector TV</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #ffffff;
             padding: 40px;
+            background: #ffffff;
         }
 
         .box {
             border: 2px solid #000;
             padding: 20px;
             margin-bottom: 20px;
-            font-size: 20px;
+            font-size: 18px;
             word-break: break-all;
+        }
+
+        .result {
+            font-weight: bold;
+            font-size: 22px;
         }
     </style>
 </head>
@@ -26,23 +31,28 @@
     </div>
 
     <div class="box" id="browserInfo">
-        Carregando informações do navegador...
+        Carregando...
+    </div>
+
+    <div class="box result" id="deviceResult">
+        Detectando dispositivo...
     </div>
 
     <script>
-        const infoDiv = document.getElementById("browserInfo");
+        const userAgent = navigator.userAgent.toLowerCase();
 
-        const userAgent = navigator.userAgent;
-        const platform = navigator.platform;
-        const appName = navigator.appName;
-        const appVersion = navigator.appVersion;
+        const isTV =
+            userAgent.includes("netcast") ||
+            userAgent.includes("smarttv") ||
+            userAgent.includes("smart-tv") ||
+            userAgent.includes("webos") ||
+            userAgent.includes("tizen") ||
+            userAgent.includes("linux arc");
 
-        infoDiv.innerHTML = `
-            <strong>User Agent:</strong><br>${userAgent}<br><br>
-            <strong>Plataforma:</strong><br>${platform}<br><br>
-            <strong>App Name:</strong><br>${appName}<br><br>
-            <strong>App Version:</strong><br>${appVersion}
-        `;
+        document.getElementById("browserInfo").innerText = navigator.userAgent;
+
+        document.getElementById("deviceResult").innerText =
+            isTV ? "Dispositivo detectado: TV" : "Dispositivo detectado: PC";
     </script>
 
 </body>
