@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste Navegador</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            padding: 40px;
+        }
+
+        .box {
+            border: 2px solid #000;
+            padding: 20px;
+            margin-bottom: 20px;
+            font-size: 20px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        Alô Mundo
+    </div>
+
+    <div class="box" id="browserInfo">
+        Carregando informações do navegador...
+    </div>
+
+    <script>
+        const infoDiv = document.getElementById("browserInfo");
+
+        const userAgent = navigator.userAgent;
+        const platform = navigator.platform;
+        const appName = navigator.appName;
+        const appVersion = navigator.appVersion;
+
+        infoDiv.innerHTML = `
+            <strong>User Agent:</strong><br>${userAgent}<br><br>
+            <strong>Plataforma:</strong><br>${platform}<br><br>
+            <strong>App Name:</strong><br>${appName}<br><br>
+            <strong>App Version:</strong><br>${appVersion}
+        `;
+    </script>
+
+</body>
+</html>
