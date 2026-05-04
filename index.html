@@ -41,13 +41,17 @@
       z-index: 2;
     }
   </style>
+<script>
+setInterval(() => {
+  // força foco na janela
+  window.focus();
+
+  // dispara evento leve
+  document.dispatchEvent(new Event('visibilitychange'));
+}, 25000);
+</script>
   
 <script>
-  setInterval(() => {
-  window.scrollBy(0, 1);
-  window.scrollBy(0, -1);
-  }, 20000); // a cada 20s
-  
   const frames = [
     { id: "frame1", tempo: 60000 },
     { id: "frame2", tempo: 45000 },
