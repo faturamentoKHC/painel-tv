@@ -40,20 +40,7 @@
       opacity: 1;
       z-index: 2;
     }
-  </style>
-<script>
-const ghost = document.createElement('div');
-ghost.style.position = 'fixed';
-ghost.style.width = '1px';
-ghost.style.height = '1px';
-ghost.style.opacity = '0';
-document.body.appendChild(ghost);
-
-setInterval(() => {
-  ghost.style.transform = translateX(${Math.random()}px);
-}, 20000);
-</script>
-  
+  </style>  
 <script>
   const frames = [
     { id: "frame1", tempo: 60000 },
@@ -83,6 +70,18 @@ setInterval(() => {
 </head>
 
 <body>
+  <script>
+    const ghost = document.createElement('div');
+    ghost.style.position = 'fixed';
+    ghost.style.width = '1px';
+    ghost.style.height = '1px';
+    ghost.style.opacity = '0';
+    document.body.appendChild(ghost);
+    
+    setInterval(() => {
+      ghost.style.transform = translateX(${Math.random()}px);
+    }, 20000);
+  </script>
   <div id="container">
   <div class="frame ativo" id="frame1">
     <iframe src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/97aef351-f78f-4762-918c-56683f53afad?hidenavbar=true"></iframe>
