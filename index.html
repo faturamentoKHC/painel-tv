@@ -71,16 +71,10 @@
 
 <body>
   <script>
-    const ghost = document.createElement('div');
-    ghost.style.position = 'fixed';
-    ghost.style.width = '1px';
-    ghost.style.height = '1px';
-    ghost.style.opacity = '0';
-    document.body.appendChild(ghost);
-    
     setInterval(() => {
-      ghost.style.transform = translateX(${Math.random()}px);
-    }, 20000);
+      window.scrollBy(0, 1);
+      window.scrollBy(0, -1);
+    }, 20000); // a cada 20s
   </script>
   <div id="container">
   <div class="frame ativo" id="frame1">
