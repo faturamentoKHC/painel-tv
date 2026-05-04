@@ -42,13 +42,16 @@
     }
   </style>
 <script>
-setInterval(() => {
-  // força foco na janela
-  window.focus();
+const ghost = document.createElement('div');
+ghost.style.position = 'fixed';
+ghost.style.width = '1px';
+ghost.style.height = '1px';
+ghost.style.opacity = '0';
+document.body.appendChild(ghost);
 
-  // dispara evento leve
-  document.dispatchEvent(new Event('visibilitychange'));
-}, 25000);
+setInterval(() => {
+  ghost.style.transform = translateX(${Math.random()}px);
+}, 20000);
 </script>
   
 <script>
