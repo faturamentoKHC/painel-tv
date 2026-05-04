@@ -41,14 +41,13 @@
       z-index: 2;
     }
   </style>
-<script>
-setInterval(() => {
-  window.scrollBy(0, 1);
-  window.scrollBy(0, -1);
-}, 20000); // a cada 20s
-</script>
   
 <script>
+  setInterval(() => {
+  window.scrollBy(0, 1);
+  window.scrollBy(0, -1);
+  }, 20000); // a cada 20s
+  
   const frames = [
     { id: "frame1", tempo: 60000 },
     { id: "frame2", tempo: 45000 },
