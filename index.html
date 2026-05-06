@@ -70,23 +70,25 @@
 </head>
 
 <body>
-  <video id="keepalive" autoplay muted loop playsinline
-    style="position:fixed; width:300px;  pointer-events:none;">
-    <source src="./VideoTelaPreta.mp4" type="video/mp4">
-  </video>
+
+<video id="keepalive" controls autoplay muted loop playsinline width="300">
+  <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
+</video>
+
+<script>
+window.addEventListener("load", async () => {
+  const v = document.getElementById("keepalive");
+
+  try {
+    await v.play();
+    console.log("PLAY OK");
+  } catch(e) {
+    console.log("ERRO PLAY:", e);
+  }
+});
+</script>
+
   
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      const v = document.getElementById("keepalive");
-    
-      try {
-        await v.play();
-        console.log("Vídeo iniciado");
-      } catch(e) {
-        console.log("Erro ao iniciar vídeo:", e);
-      }
-    });
-  </script>
   <div id="container">
   <div class="frame ativo" id="frame1">
     <iframe src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/97aef351-f78f-4762-918c-56683f53afad?hidenavbar=true"></iframe>
