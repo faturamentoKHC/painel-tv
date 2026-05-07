@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV</title>
+  <title>Painel TV - Anti-Sleep v2</title>
 
   <style>
     html, body {
@@ -11,6 +11,7 @@
       height: 100%;
       background: black;
       overflow: hidden;
+      font-family: sans-serif;
     }
 
     #container {
@@ -40,40 +41,42 @@
       opacity: 1;
       z-index: 2;
     }
+
+    /* Video quase invisivel mas tecnicamente visivel para o navegador */
+    #keepalive {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 1px;
+      height: 1px;
+      opacity: 0.01;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    /* Indicador de Status para depuracao na TV */
+    #debug-status {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 5px 10px;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      font-size: 10px;
+      z-index: 10000;
+      border-radius: 5px;
+      pointer-events: none;
+      display: block; /* Mude para none se quiser esconder */
+    }
   </style>  
-<script>
-  const frames = [
-    { id: "frame1", tempo: 60000 },
-    { id: "frame2", tempo: 45000 },
-    { id: "frame3", tempo: 30000 }
-  ];
-
-  let index = 0;
-
-  function alternar() {
-    const atual = document.getElementById(frames[index].id);
-    if (atual) atual.classList.remove("ativo");
-
-    index = (index + 1) % frames.length;
-
-    const proximo = document.getElementById(frames[index].id);
-    if (proximo) proximo.classList.add("ativo");
-
-    setTimeout(alternar, frames[index].tempo);
-  }
-
-  // delay inicial para Power Apps estabilizar
-  setTimeout(() => {
-    setTimeout(alternar, frames[0].tempo);
-  }, 5000);
-</script>
 </head>
 
 <body>
 
+<div id="debug-status">Iniciando...</div>
+
 <div id="container">
-  <!-- Video oculto para evitar modo de descanso -->
-  <video id="keepalive" muted loop playsinline style="display:none;">
+  <video id="keepalive" muted loop playsinline>
     <source src="VideoTelaPreta.mp4" type="video/mp4">
     <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
   </video>
@@ -92,43 +95,94 @@
 </div>
 
 <script>
-  // Lógica de Wake Lock e Prevenção de Descanso
+  const statusEl = document.getElementById('debug-status');
+  function logStatus(msg) {
+    statusEl.innerText = `Status: ${msg}`;
+    console.log(msg);
+  }
+
+  // --- LOGICA DE ALTERNANCIA DE FRAMES ---
+  const frames = [
+    { id: "frame1", tempo: 60000 },
+    { id: "frame2", tempo: 45000 },
+    { id: "frame3", tempo: 30000 }
+  ];
+  let currentFrameIndex = 0;
+
+  function alternar() {
+    const atual = document.getElementById(frames[currentFrameIndex].id);
+    if (atual) atual.classList.remove("ativo");
+
+    currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+
+    const proximo = document.getElementById(frames[currentFrameIndex].id);
+    if (proximo) proximo.classList.add("ativo");
+
+    logStatus(`Exibindo ${frames[currentFrameIndex].id}`);
+    setTimeout(alternar, frames[currentFrameIndex].tempo);
+  }
+
+  setTimeout(() => {
+    alternar();
+  }, 5000);
+
+
+  // --- LOGICA ANTI-SLEEP AGRESSIVA ---
   let wakeLock = null;
 
   async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) {
+      logStatus("WakeLock não suportado");
+      return;
+    }
     try {
-      if ('wakeLock' in navigator) {
-        wakeLock = await navigator.wakeLock.request('screen');
-        console.log("Wake Lock ativo!");
-      }
+      wakeLock = await navigator.wakeLock.request('screen');
+      logStatus("WakeLock Ativo ✅");
+      
+      wakeLock.addEventListener('release', () => {
+        logStatus("WakeLock Liberado ⚠️");
+        requestWakeLock(); // Tentar recuperar imediatamente
+      });
     } catch (err) {
-      console.log("Wake Lock erro:", err.message);
+      logStatus(`Erro WakeLock: ${err.message}`);
     }
   }
 
   function startVideo() {
     const v = document.getElementById("keepalive");
     if (v) {
-      v.play().catch(e => console.log("Vídeo bloqueado: aguardando interação"));
+      v.play()
+        .then(() => logStatus("Vídeo Rodando ✅"))
+        .catch(e => logStatus("Vídeo Bloqueado (Clique na tela) ❌"));
     }
   }
 
+  // Tentativa inicial
   window.addEventListener("load", () => {
     requestWakeLock();
     startVideo();
+    
+    // Forçar atividade a cada 30 segundos
+    setInterval(() => {
+      if (wakeLock === null) requestWakeLock();
+      logStatus(`Pulso de Atividade ${new Date().toLocaleTimeString()}`);
+    }, 30000);
   });
 
-  document.addEventListener("visibilitychange", async () => {
-    if (wakeLock !== null && document.visibilityState === "visible") {
-      await requestWakeLock();
-    }
-  });
-
-  // Reativar em qualquer clique (caso o browser exija interação)
+  // Reativar em qualquer interação
   document.addEventListener("click", () => {
+    logStatus("Interação detectada!");
     requestWakeLock();
     startVideo();
   });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      requestWakeLock();
+      startVideo();
+    }
+  });
+
 </script>
 </body>
 </html>
