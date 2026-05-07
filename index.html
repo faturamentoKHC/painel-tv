@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v2.2</title>
+  <title>Painel TV - Anti-Sleep v2.3</title>
 
   <style>
     html,
@@ -44,7 +44,6 @@
       z-index: 2;
     }
 
-    /* Video quase invisivel mas tecnicamente visivel para o navegador */
     #keepalive {
       position: absolute;
       bottom: 0;
@@ -56,30 +55,27 @@
       pointer-events: none;
     }
 
-    /* Estilos base do Indicador de Status */
     #debug-status {
       position: absolute;
       padding: 6px 15px;
       background: rgba(0, 0, 0, 0.7);
-      color: #00ff00; /* Verde neon para visibilidade */
+      color: #00ff00;
       font-size: 12px;
       z-index: 10000;
       border-radius: 8px;
       pointer-events: none;
       transition: all 0.5s ease;
-      white-space: pre; /* Permitir quebras de linha se necessário */
+      white-space: pre;
       box-shadow: 0 0 10px rgba(0,0,0,0.5);
       border: 1px solid rgba(255,255,255,0.1);
     }
 
-    /* Posicao: Centro Inferior (Frames 1 e 3) */
     .pos-center {
       bottom: 15px;
       left: 50%;
       transform: translateX(-50%);
     }
 
-    /* Posicao: Canto Inferior Direito (Frame 2) */
     .pos-right {
       bottom: 15px;
       right: 15px;
@@ -94,7 +90,6 @@
   <div id="debug-status" class="pos-center">Iniciando Sistema...</div>
 
   <div id="container">
-    <!-- Video oculto para forçar atividade de mídia -->
     <video id="keepalive" muted loop playsinline>
       <source src="VideoTelaPreta.mp4" type="video/mp4">
       <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
@@ -114,110 +109,102 @@
   </div>
 
   <script>
-    const statusEl = document.getElementById('debug-status');
-    let lastWakeLockStatus = "Aguardando...";
-    let lastVideoStatus = "Aguardando...";
-    let pulseCount = 0;
+    var statusEl = document.getElementById('debug-status');
+    var lastWakeLockStatus = "Aguardando...";
+    var lastVideoStatus = "Aguardando...";
+    var pulseCount = 0;
+    var wakeLock = null;
 
     function updateDisplay() {
-      const now = new Date().toLocaleTimeString();
-      statusEl.innerText = `[${now}] P${pulseCount}\nWakeLock: ${lastWakeLockStatus}\nVídeo: ${lastVideoStatus}`;
+      var now = new Date().toLocaleTimeString();
+      statusEl.innerText = "[" + now + "] P" + pulseCount + "\nWakeLock: " + lastWakeLockStatus + "\nVídeo: " + lastVideoStatus;
     }
 
     function logStatus(type, msg) {
       if (type === 'wakelock') lastWakeLockStatus = msg;
       if (type === 'video') lastVideoStatus = msg;
       updateDisplay();
-      console.log(`${type}: ${msg}`);
     }
 
     // --- LOGICA DE ALTERNANCIA DE FRAMES ---
-    const frames = [
+    var frames = [
       { id: "frame1", tempo: 60000, pos: "pos-center" },
       { id: "frame2", tempo: 45000, pos: "pos-right" },
       { id: "frame3", tempo: 30000, pos: "pos-center" }
     ];
-    let currentFrameIndex = 0;
+    var currentFrameIndex = 0;
 
     function alternar() {
-      const atual = document.getElementById(frames[currentFrameIndex].id);
+      var atual = document.getElementById(frames[currentFrameIndex].id);
       if (atual) atual.classList.remove("ativo");
 
       currentFrameIndex = (currentFrameIndex + 1) % frames.length;
 
-      const proximo = document.getElementById(frames[currentFrameIndex].id);
+      var proximo = document.getElementById(frames[currentFrameIndex].id);
       if (proximo) proximo.classList.add("ativo");
 
-      // Atualizar posicao do status
       statusEl.className = frames[currentFrameIndex].pos;
-      
       updateDisplay();
       setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
 
-    // --- LOGICA ANTI-SLEEP ---
-    let wakeLock = null;
-
-    async function requestWakeLock() {
+    // --- LOGICA ANTI-SLEEP (Sintaxe legada para compatibilidade) ---
+    function requestWakeLock() {
+      logStatus('wakelock', "Solicitando...");
+      
       if (!('wakeLock' in navigator)) {
-        logStatus('wakelock', "Não suportado ❌");
+        logStatus('wakelock', "Não suportado pelo Navegador ❌");
         return;
       }
-      try {
-        wakeLock = await navigator.wakeLock.request('screen');
-        logStatus('wakelock', "Ativo ✅");
 
-        wakeLock.addEventListener('release', () => {
-          logStatus('wakelock', "Liberado ⚠️");
-          setTimeout(requestWakeLock, 1000); // Tentar reativar
+      navigator.wakeLock.request('screen')
+        .then(function(lock) {
+          wakeLock = lock;
+          logStatus('wakelock', "Ativo ✅");
+
+          wakeLock.addEventListener('release', function() {
+            logStatus('wakelock', "Liberado ⚠️");
+            wakeLock = null;
+          });
+        })
+        .catch(function(err) {
+          logStatus('wakelock', "Erro: " + err.message);
         });
-      } catch (err) {
-        logStatus('wakelock', `Erro: ${err.message}`);
-      }
     }
 
     function startVideo() {
-      const v = document.getElementById("keepalive");
+      var v = document.getElementById("keepalive");
       if (v) {
         v.play()
-          .then(() => logStatus('video', "Rodando ✅"))
-          .catch(e => logStatus('video', "Bloqueado (Clique p/ Ativar) ❌"));
+          .then(function() { logStatus('video', "Rodando ✅"); })
+          .catch(function(e) { logStatus('video', "Bloqueado (Clique p/ Ativar) ❌"); });
       }
     }
 
-    // Eventos Globais
-    window.addEventListener("load", () => {
+    window.onload = function() {
+      logStatus('wakelock', "Iniciando...");
       requestWakeLock();
       startVideo();
-      
-      // Timer inicial para frames
       setTimeout(alternar, 5000);
 
-      // Pulso de atividade a cada 15 segundos
-      setInterval(() => {
+      setInterval(function() {
         pulseCount++;
-        if (wakeLock === null) requestWakeLock();
-        
-        // Pequena "agitação" no DOM para TVs que monitoram inatividade de renderização
+        if (!wakeLock) requestWakeLock();
         statusEl.style.opacity = (statusEl.style.opacity == "0.99") ? "1" : "0.99";
-        
         updateDisplay();
       }, 15000);
-    });
+    };
 
-    document.addEventListener("click", () => {
-      logStatus('video', "Interação detectada!");
+    document.onclick = function() {
       requestWakeLock();
       startVideo();
-    });
+    };
 
-    document.addEventListener("visibilitychange", () => {
+    document.onvisibilitychange = function() {
       if (document.visibilityState === "visible") {
         requestWakeLock();
-        startVideo();
       }
-    });
-
+    };
   </script>
 </body>
 
