@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v2.4</title>
+  <title>Painel TV - Anti-Sleep v2.5</title>
 
   <style>
     html,
@@ -44,17 +44,26 @@
       z-index: 2;
     }
 
-    /* Video um pouco maior e visivel para garantir atividade */
+    /* Pixel de Atividade (Muda de cor para enganar sensor de imagem estatica) */
+    #activity-pixel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 2px;
+      height: 2px;
+      background: #010101;
+      z-index: 10001;
+    }
+
     #keepalive {
       position: absolute;
       bottom: 5px;
       right: 5px;
-      width: 10px;
-      height: 10px;
+      width: 15px;
+      height: 15px;
       opacity: 0.1;
       z-index: 9999;
       pointer-events: none;
-      background: black;
     }
 
     #debug-status {
@@ -89,7 +98,8 @@
 
 <body>
 
-  <div id="debug-status" class="pos-center">Iniciando Sistema...</div>
+  <div id="debug-status" class="pos-center">Iniciando...</div>
+  <div id="activity-pixel"></div>
 
   <div id="container">
     <video id="keepalive" muted loop playsinline autoplay>
@@ -112,10 +122,12 @@
 
   <script>
     var statusEl = document.getElementById('debug-status');
+    var pixelEl = document.getElementById('activity-pixel');
     var lastWakeLockStatus = "Aguardando...";
     var lastVideoStatus = "Aguardando...";
     var pulseCount = 0;
     var wakeLock = null;
+    var wakeLockAttempted = false;
 
     function updateDisplay() {
       var now = new Date().toLocaleTimeString();
@@ -148,22 +160,23 @@
     }
 
     // --- LOGICA ANTI-SLEEP ---
-    function requestWakeLock() {
-      if (lastWakeLockStatus === "Ativo ✅") return;
+    function requestWakeLock(isManual) {
+      // Se ja tentou e deu timeout, nao tenta de novo automaticamente para nao travar o browser
+      if (wakeLockAttempted && !isManual && lastWakeLockStatus.indexOf("Timeout") !== -1) return;
       
       logStatus('wakelock', "Solicitando...");
+      wakeLockAttempted = true;
       
       if (!navigator.wakeLock || !navigator.wakeLock.request) {
         logStatus('wakelock', "Não suportado ❌");
         return;
       }
 
-      // Adicionar um timeout de segurança para a solicitacao
       var timeout = setTimeout(function() {
         if (lastWakeLockStatus === "Solicitando...") {
-          logStatus('wakelock', "Timeout (Travado) ⚠️");
+          logStatus('wakelock', "Bloqueado/Timeout ⚠️");
         }
-      }, 10000);
+      }, 8000);
 
       navigator.wakeLock.request('screen')
         .then(function(lock) {
@@ -191,22 +204,26 @@
     }
 
     window.onload = function() {
-      requestWakeLock();
+      requestWakeLock(false);
       startVideo();
       setTimeout(alternar, 5000);
 
       setInterval(function() {
         pulseCount++;
-        if (!wakeLock) requestWakeLock();
         
-        // Atividade extra: Mudar levemente a cor do status para "agitar" os pixels
-        statusEl.style.color = (statusEl.style.color === "rgb(0, 255, 0)") ? "#00FE00" : "#00FF00";
+        // Atividade extra 1: Mudar cor do pixel de atividade
+        var colors = ["#010101", "#020202", "#000000"];
+        pixelEl.style.backgroundColor = colors[pulseCount % 3];
+        
+        // Atividade extra 2: Alterar hash da URL (sem recarregar)
+        try { history.replaceState(null, null, "#" + pulseCount); } catch(e) {}
+
         updateDisplay();
       }, 15000);
     };
 
     document.onclick = function() {
-      requestWakeLock();
+      requestWakeLock(true);
       startVideo();
     };
   </script>
