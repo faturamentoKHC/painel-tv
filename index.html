@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v2</title>
+  <title>Painel TV - Anti-Sleep v2.1</title>
 
   <style>
     html, body {
@@ -54,26 +54,40 @@
       pointer-events: none;
     }
 
-    /* Indicador de Status para depuracao na TV */
+    /* Estilos base do Indicador de Status */
     #debug-status {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      padding: 5px 10px;
-      background: rgba(0,0,0,0.5);
+      padding: 5px 12px;
+      background: rgba(0,0,0,0.6);
       color: white;
-      font-size: 10px;
+      font-size: 11px;
       z-index: 10000;
       border-radius: 5px;
       pointer-events: none;
-      display: block; /* Mude para none se quiser esconder */
+      transition: all 0.5s ease;
+      white-space: nowrap;
+    }
+
+    /* Posicao: Centro Inferior (Frames 1 e 3) */
+    .pos-center {
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* Posicao: Canto Inferior Direito (Frame 2) */
+    .pos-right {
+      bottom: 15px;
+      right: 15px;
+      transform: none;
+      left: auto;
     }
   </style>  
 </head>
 
 <body>
 
-<div id="debug-status">Iniciando...</div>
+<div id="debug-status" class="pos-center">Iniciando...</div>
 
 <div id="container">
   <video id="keepalive" muted loop playsinline>
@@ -103,9 +117,9 @@
 
   // --- LOGICA DE ALTERNANCIA DE FRAMES ---
   const frames = [
-    { id: "frame1", tempo: 60000 },
-    { id: "frame2", tempo: 45000 },
-    { id: "frame3", tempo: 30000 }
+    { id: "frame1", tempo: 60000, pos: "pos-center" },
+    { id: "frame2", tempo: 45000, pos: "pos-right"  },
+    { id: "frame3", tempo: 30000, pos: "pos-center" }
   ];
   let currentFrameIndex = 0;
 
@@ -117,6 +131,9 @@
 
     const proximo = document.getElementById(frames[currentFrameIndex].id);
     if (proximo) proximo.classList.add("ativo");
+
+    // Atualizar posicao do status
+    statusEl.className = frames[currentFrameIndex].pos;
 
     logStatus(`Exibindo ${frames[currentFrameIndex].id}`);
     setTimeout(alternar, frames[currentFrameIndex].tempo);
@@ -141,7 +158,7 @@
       
       wakeLock.addEventListener('release', () => {
         logStatus("WakeLock Liberado ⚠️");
-        requestWakeLock(); // Tentar recuperar imediatamente
+        requestWakeLock();
       });
     } catch (err) {
       logStatus(`Erro WakeLock: ${err.message}`);
@@ -157,19 +174,17 @@
     }
   }
 
-  // Tentativa inicial
   window.addEventListener("load", () => {
     requestWakeLock();
     startVideo();
     
-    // Forçar atividade a cada 30 segundos
     setInterval(() => {
       if (wakeLock === null) requestWakeLock();
-      logStatus(`Pulso de Atividade ${new Date().toLocaleTimeString()}`);
+      // Manter a mensagem atual mas logar atividade no console
+      console.log(`Pulso de Atividade ${new Date().toLocaleTimeString()}`);
     }, 30000);
   });
 
-  // Reativar em qualquer interação
   document.addEventListener("click", () => {
     logStatus("Interação detectada!");
     requestWakeLock();
