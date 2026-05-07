@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Monitoramento - Kraft Heinz</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #333;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #da291c; /* Cor Kraft Heinz */
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 18px;
+            color: #666;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        #clock {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <img src="https://www.kraftheinzcompany.com/images/KraftHeinz-Logo.png" alt="Kraft Heinz Logo" style="max-width: 200px; margin-bottom: 20px;">
+        <h1>Painel de Monitoramento</h1>
+        <div id="clock">00:00:00</div>
+        <p>Sistema Ativo e Monitorando</p>
+        <div class="status" id="wakeLockStatus">Status: Aguardando Wake Lock...</div>
+    </div>
+
+    <!-- Video para evitar modo de descanso -->
+    <video id="wakeLockVideo" muted loop playsinline style="display:none;">
+        <source src="VideoTelaPreta.mp4" type="video/mp4">
+    </video>
+
+    <script>
+        // Atualizar Relógio
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pt-BR');
+            document.getElementById('clock').innerText = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Lógica de Wake Lock
+        let wakeLock = null;
+        const statusElement = document.getElementById('wakeLockStatus');
+
+        const requestWakeLock = async () => {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    statusElement.innerText = "Status: Proteção Anti-Sleep Ativa";
+                    statusElement.style.backgroundColor = "#e8f5e9";
+                    statusElement.style.color = "#2e7d32";
+                    
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake Lock liberado');
+                        statusElement.innerText = "Status: Proteção Liberada";
+                    });
+                } else {
+                    statusElement.innerText = "Status: Wake Lock não suportado (usando fallback)";
+                }
+            } catch (err) {
+                console.error(`${err.name}, ${err.message}`);
+                statusElement.innerText = "Status: Erro ao ativar proteção";
+            }
+        };
+
+        const startWakeLockVideo = () => {
+            const video = document.getElementById('wakeLockVideo');
+            if (video) {
+                video.play().catch(e => {
+                    console.log("Vídeo bloqueado: aguardando interação");
+                    statusElement.innerText = "Status: Clique na tela para ativar proteção";
+                    statusElement.style.backgroundColor = "#fff3e0";
+                    statusElement.style.color = "#ef6c00";
+                });
+            }
+        };
+
+        window.addEventListener('load', () => {
+            requestWakeLock();
+            startWakeLockVideo();
+        });
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                await requestWakeLock();
+            }
+        });
+
+        document.addEventListener('click', () => {
+            requestWakeLock();
+            startWakeLockVideo();
+        });
+    </script>
+</body>
+</html>
