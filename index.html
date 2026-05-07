@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v2.3</title>
+  <title>Painel TV - Anti-Sleep v2.4</title>
 
   <style>
     html,
@@ -44,15 +44,17 @@
       z-index: 2;
     }
 
+    /* Video um pouco maior e visivel para garantir atividade */
     #keepalive {
       position: absolute;
-      bottom: 0;
-      right: 0;
-      width: 1px;
-      height: 1px;
-      opacity: 0.01;
+      bottom: 5px;
+      right: 5px;
+      width: 10px;
+      height: 10px;
+      opacity: 0.1;
       z-index: 9999;
       pointer-events: none;
+      background: black;
     }
 
     #debug-status {
@@ -90,7 +92,7 @@
   <div id="debug-status" class="pos-center">Iniciando Sistema...</div>
 
   <div id="container">
-    <video id="keepalive" muted loop playsinline>
+    <video id="keepalive" muted loop playsinline autoplay>
       <source src="VideoTelaPreta.mp4" type="video/mp4">
       <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
     </video>
@@ -137,37 +139,44 @@
     function alternar() {
       var atual = document.getElementById(frames[currentFrameIndex].id);
       if (atual) atual.classList.remove("ativo");
-
       currentFrameIndex = (currentFrameIndex + 1) % frames.length;
-
       var proximo = document.getElementById(frames[currentFrameIndex].id);
       if (proximo) proximo.classList.add("ativo");
-
       statusEl.className = frames[currentFrameIndex].pos;
       updateDisplay();
       setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
 
-    // --- LOGICA ANTI-SLEEP (Sintaxe legada para compatibilidade) ---
+    // --- LOGICA ANTI-SLEEP ---
     function requestWakeLock() {
+      if (lastWakeLockStatus === "Ativo ✅") return;
+      
       logStatus('wakelock', "Solicitando...");
       
-      if (!('wakeLock' in navigator)) {
-        logStatus('wakelock', "Não suportado pelo Navegador ❌");
+      if (!navigator.wakeLock || !navigator.wakeLock.request) {
+        logStatus('wakelock', "Não suportado ❌");
         return;
       }
 
+      // Adicionar um timeout de segurança para a solicitacao
+      var timeout = setTimeout(function() {
+        if (lastWakeLockStatus === "Solicitando...") {
+          logStatus('wakelock', "Timeout (Travado) ⚠️");
+        }
+      }, 10000);
+
       navigator.wakeLock.request('screen')
         .then(function(lock) {
+          clearTimeout(timeout);
           wakeLock = lock;
           logStatus('wakelock', "Ativo ✅");
-
-          wakeLock.addEventListener('release', function() {
+          wakeLock.onrelease = function() {
             logStatus('wakelock', "Liberado ⚠️");
             wakeLock = null;
-          });
+          };
         })
         .catch(function(err) {
+          clearTimeout(timeout);
           logStatus('wakelock', "Erro: " + err.message);
         });
     }
@@ -177,12 +186,11 @@
       if (v) {
         v.play()
           .then(function() { logStatus('video', "Rodando ✅"); })
-          .catch(function(e) { logStatus('video', "Bloqueado (Clique p/ Ativar) ❌"); });
+          .catch(function(e) { logStatus('video', "Bloqueado ❌"); });
       }
     }
 
     window.onload = function() {
-      logStatus('wakelock', "Iniciando...");
       requestWakeLock();
       startVideo();
       setTimeout(alternar, 5000);
@@ -190,7 +198,9 @@
       setInterval(function() {
         pulseCount++;
         if (!wakeLock) requestWakeLock();
-        statusEl.style.opacity = (statusEl.style.opacity == "0.99") ? "1" : "0.99";
+        
+        // Atividade extra: Mudar levemente a cor do status para "agitar" os pixels
+        statusEl.style.color = (statusEl.style.color === "rgb(0, 255, 0)") ? "#00FE00" : "#00FF00";
         updateDisplay();
       }, 15000);
     };
@@ -198,12 +208,6 @@
     document.onclick = function() {
       requestWakeLock();
       startVideo();
-    };
-
-    document.onvisibilitychange = function() {
-      if (document.visibilityState === "visible") {
-        requestWakeLock();
-      }
     };
   </script>
 </body>
