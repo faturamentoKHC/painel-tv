@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v2.5</title>
+  <title>Painel TV - Anti-Sleep v2.6</title>
 
   <style>
     html,
@@ -20,6 +20,7 @@
       position: relative;
       width: 100vw;
       height: 100vh;
+      z-index: 2;
     }
 
     .frame {
@@ -44,25 +45,27 @@
       z-index: 2;
     }
 
-    /* Pixel de Atividade (Muda de cor para enganar sensor de imagem estatica) */
-    #activity-pixel {
-      position: absolute;
+    /* Video em tela cheia NO FUNDO */
+    #keepalive {
+      position: fixed;
       top: 0;
-      right: 0;
-      width: 2px;
-      height: 2px;
-      background: #010101;
-      z-index: 10001;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+      opacity: 0.1; /* Levemente visivel no fundo preto */
     }
 
-    #keepalive {
-      position: absolute;
-      bottom: 5px;
-      right: 5px;
-      width: 15px;
-      height: 15px;
-      opacity: 0.1;
-      z-index: 9999;
+    /* Canvas para agitar a GPU */
+    #gpu-jitter {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 1px;
+      z-index: 10001;
+      opacity: 0.01;
       pointer-events: none;
     }
 
@@ -78,35 +81,24 @@
       transition: all 0.5s ease;
       white-space: pre;
       box-shadow: 0 0 10px rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.1);
     }
 
-    .pos-center {
-      bottom: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    .pos-right {
-      bottom: 15px;
-      right: 15px;
-      transform: none;
-      left: auto;
-    }
+    .pos-center { bottom: 15px; left: 50%; transform: translateX(-50%); }
+    .pos-right { bottom: 15px; right: 15px; transform: none; left: auto; }
   </style>
 </head>
 
 <body>
 
   <div id="debug-status" class="pos-center">Iniciando...</div>
-  <div id="activity-pixel"></div>
+  <canvas id="gpu-jitter"></canvas>
+
+  <video id="keepalive" muted loop playsinline autoplay>
+    <source src="VideoTelaPreta.mp4" type="video/mp4">
+    <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
+  </video>
 
   <div id="container">
-    <video id="keepalive" muted loop playsinline autoplay>
-      <source src="VideoTelaPreta.mp4" type="video/mp4">
-      <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
-    </video>
-
     <div class="frame ativo" id="frame1">
       <iframe src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/97aef351-f78f-4762-918c-56683f53afad?hidenavbar=true"></iframe>
     </div>
@@ -122,12 +114,12 @@
 
   <script>
     var statusEl = document.getElementById('debug-status');
-    var pixelEl = document.getElementById('activity-pixel');
+    var canvas = document.getElementById('gpu-jitter');
+    var ctx = canvas.getContext('2d');
     var lastWakeLockStatus = "Aguardando...";
     var lastVideoStatus = "Aguardando...";
     var pulseCount = 0;
     var wakeLock = null;
-    var wakeLockAttempted = false;
 
     function updateDisplay() {
       var now = new Date().toLocaleTimeString();
@@ -140,7 +132,17 @@
       updateDisplay();
     }
 
-    // --- LOGICA DE ALTERNANCIA DE FRAMES ---
+    // --- AGITAÇÃO DE GPU (Canvas) ---
+    function jitterGPU() {
+      if (ctx) {
+        ctx.fillStyle = pulseCount % 2 === 0 ? "#010101" : "#000000";
+        ctx.fillRect(0, 0, 1, 1);
+      }
+      requestAnimationFrame(jitterGPU);
+    }
+    jitterGPU();
+
+    // --- ALTERNANCIA DE FRAMES ---
     var frames = [
       { id: "frame1", tempo: 60000, pos: "pos-center" },
       { id: "frame2", tempo: 45000, pos: "pos-right" },
@@ -160,37 +162,20 @@
     }
 
     // --- LOGICA ANTI-SLEEP ---
-    function requestWakeLock(isManual) {
-      // Se ja tentou e deu timeout, nao tenta de novo automaticamente para nao travar o browser
-      if (wakeLockAttempted && !isManual && lastWakeLockStatus.indexOf("Timeout") !== -1) return;
-      
-      logStatus('wakelock', "Solicitando...");
-      wakeLockAttempted = true;
-      
-      if (!navigator.wakeLock || !navigator.wakeLock.request) {
+    function requestWakeLock() {
+      if (!navigator.wakeLock) {
         logStatus('wakelock', "Não suportado ❌");
         return;
       }
-
-      var timeout = setTimeout(function() {
-        if (lastWakeLockStatus === "Solicitando...") {
-          logStatus('wakelock', "Bloqueado/Timeout ⚠️");
-        }
-      }, 8000);
-
+      logStatus('wakelock', "Solicitando...");
       navigator.wakeLock.request('screen')
         .then(function(lock) {
-          clearTimeout(timeout);
           wakeLock = lock;
           logStatus('wakelock', "Ativo ✅");
-          wakeLock.onrelease = function() {
-            logStatus('wakelock', "Liberado ⚠️");
-            wakeLock = null;
-          };
+          wakeLock.onrelease = function() { logStatus('wakelock', "Liberado ⚠️"); wakeLock = null; };
         })
         .catch(function(err) {
-          clearTimeout(timeout);
-          logStatus('wakelock', "Erro: " + err.message);
+          logStatus('wakelock', "Erro/Bloqueado ⚠️");
         });
     }
 
@@ -204,29 +189,26 @@
     }
 
     window.onload = function() {
-      requestWakeLock(false);
+      requestWakeLock();
       startVideo();
       setTimeout(alternar, 5000);
 
       setInterval(function() {
         pulseCount++;
+        if (!wakeLock) requestWakeLock();
         
-        // Atividade extra 1: Mudar cor do pixel de atividade
-        var colors = ["#010101", "#020202", "#000000"];
-        pixelEl.style.backgroundColor = colors[pulseCount % 3];
+        // Atividade extra: Simular micro-scroll (invisivel mas conta como atividade)
+        window.scrollBy(0, 1);
+        window.scrollBy(0, -1);
         
-        // Atividade extra 2: Alterar hash da URL (sem recarregar)
-        try { history.replaceState(null, null, "#" + pulseCount); } catch(e) {}
-
         updateDisplay();
-      }, 15000);
+      }, 20000);
     };
 
     document.onclick = function() {
-      requestWakeLock(true);
+      requestWakeLock();
       startVideo();
     };
   </script>
 </body>
-
 </html>
