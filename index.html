@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v3.2</title>
+  <title>Painel TV - Anti-Sleep v3.3</title>
 
   <style>
     html,
@@ -23,7 +23,7 @@
       width: 100%;
       height: 100%;
       background: #000;
-      z-index: 20000;
+      z-index: 30000;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -41,14 +41,13 @@
       border-radius: 10px;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 0 20px rgba(218, 41, 28, 0.5);
     }
 
     #container {
       position: relative;
       width: 100vw;
       height: 100vh;
-      z-index: 2;
+      z-index: 5; /* Abaixo do video de seguranca */
     }
 
     .frame {
@@ -73,48 +72,60 @@
       border: 0;
     }
 
-    /* Video de fundo forçado a cobrir tudo */
+    /* Video de seguranca NO TOPO, quase invisivel */
     #keepalive-video {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      z-index: -1;
-      opacity: 0.05;
+      z-index: 20000; /* ACIMA DE TUDO */
+      opacity: 0.02;
+      pointer-events: none; /* Deixa os cliques passarem para os frames */
+    }
+
+    /* Ponto de movimento real para enganar sensores de hardware */
+    #motion-dot {
+      position: fixed;
+      width: 4px;
+      height: 4px;
+      background: #00ff00;
+      z-index: 25000;
+      border-radius: 50%;
+      opacity: 0.5;
+      pointer-events: none;
     }
 
     #debug-status {
       position: absolute;
-      padding: 8px 16px;
+      padding: 6px 12px;
       background: rgba(0, 0, 0, 0.8);
       color: #00ff00;
-      font-size: 13px;
-      z-index: 10000;
-      border-radius: 8px;
+      font-size: 11px;
+      z-index: 21000; /* Acima do video */
+      border-radius: 5px;
       pointer-events: none;
-      transition: all 0.5s ease;
       white-space: pre;
-      border: 1px solid rgba(0,255,0,0.2);
       font-family: monospace;
     }
 
-    .pos-center { bottom: 15px; left: 50%; transform: translateX(-50%); }
-    .pos-right { bottom: 15px; right: 15px; transform: none; left: auto; }
+    .pos-center { bottom: 10px; left: 50%; transform: translateX(-50%); }
+    .pos-right { bottom: 10px; right: 10px; transform: none; left: auto; }
   </style>
 </head>
 
 <body>
 
   <div id="splash-screen" onclick="iniciarPainel()">
-    <img src="https://www.kraftheinzcompany.com/images/logo_main.png" alt="Logo" style="max-width: 200px; margin-bottom: 30px;">
-    <button id="start-btn">CLIQUE AQUI PARA INICIAR O PAINEL</button>
-    <p style="margin-top: 20px; font-size: 14px; color: #888;">(V3.2 - Clock & Frame Pulse)</p>
+    <img src="https://www.kraftheinzcompany.com/images/logo_main.png" alt="Logo" style="max-width: 180px; margin-bottom: 20px;">
+    <button id="start-btn">INICIAR PAINEL v3.3</button>
   </div>
 
   <div id="debug-status" class="pos-center">Aguardando...</div>
+  <div id="motion-dot"></div>
 
+  <!-- Video de Seguranca (Agora no TOPO) -->
   <video id="keepalive-video" muted loop playsinline>
     <source src="VideoTelaPreta.mp4" type="video/mp4">
     <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
@@ -138,11 +149,8 @@
     var statusEl = document.getElementById('debug-status');
     var video = document.getElementById('keepalive-video');
     var splash = document.getElementById('splash-screen');
-    var container = document.getElementById('container');
+    var dot = document.getElementById('motion-dot');
     
-    var lastWakeLockStatus = "Aguardando...";
-    var lastVideoStatus = "Aguardando...";
-    var lastAudioStatus = "Aguardando...";
     var pulseCount = 0;
     var wakeLock = null;
 
@@ -151,63 +159,50 @@
       var timeStr = now.getHours().toString().padStart(2, '0') + ":" + 
                     now.getMinutes().toString().padStart(2, '0') + ":" + 
                     now.getSeconds().toString().padStart(2, '0');
-      
-      statusEl.innerText = "[" + timeStr + "] Pulse: " + pulseCount + "\nWakeLock: " + lastWakeLockStatus + "\nVídeo: " + lastVideoStatus + " | Áudio: " + lastAudioStatus;
-    }
-
-    function logStatus(type, msg) {
-      if (type === 'wakelock') lastWakeLockStatus = msg;
-      if (type === 'video') lastVideoStatus = msg;
-      if (type === 'audio') lastAudioStatus = msg;
-      updateDisplay();
+      statusEl.innerText = "[" + timeStr + "] P:" + pulseCount + " | WakeLock: " + (wakeLock ? "OK" : "...");
     }
 
     function iniciarPainel() {
       splash.style.display = 'none';
+      video.play();
       
-      // 1. Ativar Video
-      video.play().then(function() { logStatus('video', "Rodando ✅"); }).catch(function() { logStatus('video', "Erro ❌"); });
-      
-      // 2. Ativar Áudio Sintético
-      try {
-        var AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-          var audioCtx = new AudioContext();
-          var oscillator = audioCtx.createOscillator();
-          var gainNode = audioCtx.createGain();
-          gainNode.gain.value = 0.001;
-          oscillator.connect(gainNode);
-          gainNode.connect(audioCtx.destination);
-          oscillator.start();
-          logStatus('audio', "Ativo ✅");
-        }
-      } catch(e) { logStatus('audio', "Erro"); }
-
-      // 3. Ativar WakeLock
       if (navigator.wakeLock) {
-        navigator.wakeLock.request('screen').then(function(lock) {
-          wakeLock = lock;
-          logStatus('wakelock', "Ativo ✅");
-        }).catch(function() { logStatus('wakelock', "Erro ⚠️"); });
+        navigator.wakeLock.request('screen').then(function(lock) { wakeLock = lock; });
       }
 
-      // 4. Iniciar Ciclos
-      setTimeout(alternar, 5000);
-      
-      // Loop de atualização do relógio (segundo a segundo)
-      setInterval(function() {
-        updateDisplay();
-      }, 1000);
+      // Audio Sintetico
+      try {
+        var AudioContext = window.AudioContext || window.webkitAudioContext;
+        var audioCtx = new AudioContext();
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0.001;
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+      } catch(e) {}
 
-      // Loop de atividade extra (a cada 20s)
-      setInterval(simulateActivity, 20000);
+      setTimeout(alternar, 5000);
+      setInterval(function() { updateDisplay(); moveDot(); }, 1000);
+      setInterval(forceActivity, 30000);
     }
 
-    function simulateActivity() {
+    // Move um ponto pelas bordas da tela para gerar atividade de renderizacao real
+    function moveDot() {
+      var x = Math.random() * (window.innerWidth - 10);
+      var y = Math.random() * (window.innerHeight - 10);
+      dot.style.left = x + "px";
+      dot.style.top = y + "px";
+    }
+
+    // Forca o navegador a recalcular a pagina (Anti-suspensao)
+    function forceActivity() {
       pulseCount++;
-      
-      // Pulso de opacidade nos frames para evitar suspensão do browser
-      container.style.opacity = (container.style.opacity == "0.99") ? "1" : "0.99";
+      var body = document.body;
+      var currentDisplay = body.style.display;
+      body.style.display = 'none';
+      body.offsetHeight; // Force reflow
+      body.style.display = currentDisplay;
       
       try { history.replaceState(null, null, "#" + pulseCount); } catch(e) {}
     }
@@ -229,10 +224,7 @@
       setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
 
-    window.onload = function() {
-      updateDisplay();
-    };
+    window.onload = updateDisplay;
   </script>
 </body>
-
 </html>
