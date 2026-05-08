@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v3.0</title>
+  <title>Painel TV - Anti-Sleep v3.1</title>
 
   <style>
     html,
@@ -108,7 +108,7 @@
   <div id="splash-screen" onclick="iniciarPainel()">
     <img src="https://www.kraftheinzcompany.com/images/logo_main.png" alt="Logo" style="max-width: 200px; margin-bottom: 30px;">
     <button id="start-btn">CLIQUE AQUI PARA INICIAR O PAINEL</button>
-    <p style="margin-top: 20px; font-size: 14px; color: #888;">(V3.0 - Ativação Síncrona)</p>
+    <p style="margin-top: 20px; font-size: 14px; color: #888;">(V3.1 - Web Audio Silence)</p>
   </div>
 
   <div id="debug-status" class="pos-center">Aguardando Inicialização...</div>
@@ -117,10 +117,6 @@
     <source src="VideoTelaPreta.mp4" type="video/mp4">
     <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
   </video>
-
-  <audio id="keepalive-audio" loop>
-    <source src="data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" type="audio/wav">
-  </audio>
 
   <div id="container">
     <div class="frame ativo" id="frame1">
@@ -139,7 +135,6 @@
   <script>
     var statusEl = document.getElementById('debug-status');
     var video = document.getElementById('keepalive-video');
-    var audio = document.getElementById('keepalive-audio');
     var splash = document.getElementById('splash-screen');
     
     var lastWakeLockStatus = "Aguardando...";
@@ -161,33 +156,49 @@
     }
 
     function iniciarPainel() {
-      // 1. Ocultar splash IMEDIATAMENTE
       splash.style.display = 'none';
       
-      // 2. TENTAR TUDO SINCRONAMENTE NO CLIQUE
-      logStatus('wakelock', "Solicitando...");
       logStatus('video', "Iniciando...");
       logStatus('audio', "Iniciando...");
+      logStatus('wakelock', "Solicitando...");
 
-      // Video
-      video.play().then(function() { logStatus('video', "Rodando ✅"); }).catch(function() { logStatus('video', "Erro ❌"); });
+      // 1. Video
+      video.play()
+        .then(function() { logStatus('video', "Rodando ✅"); })
+        .catch(function() { logStatus('video', "Erro ❌"); });
       
-      // Audio
-      audio.play().then(function() { logStatus('audio', "Ativo ✅"); }).catch(function() { logStatus('audio', "Erro ❌"); });
+      // 2. Audio Sintético (Web Audio API)
+      try {
+        var AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          var audioCtx = new AudioContext();
+          // Criar um oscilador silencioso
+          var oscillator = audioCtx.createOscillator();
+          var gainNode = audioCtx.createGain();
+          gainNode.gain.value = 0.001; // Quase zero
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscillator.start();
+          logStatus('audio', "Sintético Ativo ✅");
+        } else {
+          logStatus('audio', "Não suportado ❌");
+        }
+      } catch(e) {
+        logStatus('audio', "Erro: " + e.message);
+      }
 
-      // WakeLock
+      // 3. WakeLock
       if (navigator.wakeLock) {
         navigator.wakeLock.request('screen').then(function(lock) {
           wakeLock = lock;
           logStatus('wakelock', "Ativo ✅");
         }).catch(function(err) {
-          logStatus('wakelock', "Bloqueado/Erro ⚠️");
+          logStatus('wakelock', "Bloqueado ⚠️");
         });
       } else {
         logStatus('wakelock', "Não suportado ❌");
       }
       
-      // 3. Iniciar Ciclos após as permissões
       setTimeout(function() {
           alternar();
           setInterval(simulateActivity, 20000);
