@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v2.8</title>
+  <title>Painel TV - Anti-Sleep v2.9</title>
 
   <style>
     html,
@@ -16,7 +16,6 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    /* Tela de Início para capturar o primeiro clique */
     #splash-screen {
       position: fixed;
       top: 0;
@@ -106,11 +105,10 @@
 
 <body>
 
-  <!-- Splash Screen Obrigatorio -->
   <div id="splash-screen" onclick="iniciarPainel()">
     <img src="https://www.kraftheinzcompany.com/images/logo_main.png" alt="Logo" style="max-width: 200px; margin-bottom: 30px;">
     <button id="start-btn">CLIQUE AQUI PARA INICIAR O PAINEL</button>
-    <p style="margin-top: 20px; font-size: 14px; color: #888;">(Necessário para ativar proteção anti-sleep)</p>
+    <p style="margin-top: 20px; font-size: 14px; color: #888;">(V2.9 - Estabilização de Sinais)</p>
   </div>
 
   <div id="debug-status" class="pos-center">Aguardando Inicialização...</div>
@@ -163,26 +161,65 @@
     }
 
     function iniciarPainel() {
-      // 1. Remover Splash
       splash.style.display = 'none';
-      
-      // 2. Ativar WakeLock
-      requestWakeLock();
-      
-      // 3. Ativar Midia
+      logStatus('system', "Iniciando...");
+
+      // 1. Iniciar Video (Geralmente o mais suportado)
       video.play()
         .then(function() { logStatus('video', "Rodando ✅"); })
         .catch(function() { logStatus('video', "Erro ❌"); });
+
+      // 2. Iniciar Audio após 800ms
+      setTimeout(function() {
+        audio.play()
+          .then(function() { logStatus('audio', "Ativo ✅"); })
+          .catch(function() { logStatus('audio', "Bloqueado ❌"); });
+      }, 800);
+
+      // 3. Iniciar WakeLock após 1.5s com Timeout de segurança
+      setTimeout(function() {
+        requestWakeLock();
+      }, 1500);
       
-      audio.play()
-        .then(function() { logStatus('audio', "Ativo ✅"); })
-        .catch(function() { logStatus('audio', "Erro ❌"); });
-      
-      // 4. Iniciar Ciclo de Frames
+      // 4. Iniciar Ciclo de Frames e Atividade
       setTimeout(alternar, 5000);
       setInterval(simulateActivity, 20000);
+    }
+
+    function requestWakeLock() {
+      if (!navigator.wakeLock) {
+        logStatus('wakelock', "Não suportado ❌");
+        return;
+      }
+      logStatus('wakelock', "Solicitando...");
       
-      logStatus('system', "Iniciado");
+      var lockTimeout = setTimeout(function() {
+        if (lastWakeLockStatus === "Solicitando...") {
+          logStatus('wakelock', "Timeout ⚠️");
+        }
+      }, 6000);
+
+      navigator.wakeLock.request('screen')
+        .then(function(lock) {
+          clearTimeout(lockTimeout);
+          wakeLock = lock;
+          logStatus('wakelock', "Ativo ✅");
+          wakeLock.onrelease = function() { logStatus('wakelock', "Liberado ⚠️"); wakeLock = null; };
+        })
+        .catch(function(err) {
+          clearTimeout(lockTimeout);
+          logStatus('wakelock', "Erro: " + err.message);
+        });
+    }
+
+    function simulateActivity() {
+      pulseCount++;
+      try {
+        window.dispatchEvent(new MouseEvent('mousemove'));
+      } catch(e) {}
+      document.body.style.backgroundColor = (pulseCount % 2 === 0) ? "#010101" : "#000000";
+      try { history.replaceState(null, null, "#" + pulseCount); } catch(e) {}
+      updateDisplay();
     }
 
     var frames = [
@@ -201,34 +238,6 @@
       statusEl.className = frames[currentFrameIndex].pos;
       updateDisplay();
       setTimeout(alternar, frames[currentFrameIndex].tempo);
-    }
-
-    function requestWakeLock() {
-      if (!navigator.wakeLock) {
-        logStatus('wakelock', "Não suportado ❌");
-        return;
-      }
-      logStatus('wakelock', "Solicitando...");
-      navigator.wakeLock.request('screen')
-        .then(function(lock) {
-          wakeLock = lock;
-          logStatus('wakelock', "Ativo ✅");
-          wakeLock.onrelease = function() { logStatus('wakelock', "Liberado ⚠️"); wakeLock = null; };
-        })
-        .catch(function(err) {
-          logStatus('wakelock', "Erro/Bloqueado ⚠️");
-        });
-    }
-
-    function simulateActivity() {
-      pulseCount++;
-      try {
-        window.dispatchEvent(new MouseEvent('mousemove'));
-        window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Control'}));
-      } catch(e) {}
-      document.body.style.backgroundColor = (pulseCount % 2 === 0) ? "#010101" : "#000000";
-      try { history.replaceState(null, null, "#" + pulseCount); } catch(e) {}
-      updateDisplay();
     }
 
     window.onload = function() {
