@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v2.7</title>
+  <title>Painel TV - Anti-Sleep v2.8</title>
 
   <style>
     html,
@@ -14,6 +14,35 @@
       background: black;
       overflow: hidden;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Tela de Início para capturar o primeiro clique */
+    #splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      z-index: 20000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      cursor: pointer;
+    }
+
+    #start-btn {
+      padding: 20px 40px;
+      font-size: 24px;
+      background: #da291c;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(218, 41, 28, 0.5);
     }
 
     #container {
@@ -45,7 +74,6 @@
       border: 0;
     }
 
-    /* Video de fundo em tela cheia */
     #keepalive-video {
       position: fixed;
       top: 0;
@@ -78,15 +106,20 @@
 
 <body>
 
-  <div id="debug-status" class="pos-center">Aguardando Interação... (Clique na tela)</div>
+  <!-- Splash Screen Obrigatorio -->
+  <div id="splash-screen" onclick="iniciarPainel()">
+    <img src="https://www.kraftheinzcompany.com/images/KraftHeinz-Logo.png" alt="Logo" style="max-width: 200px; margin-bottom: 30px;">
+    <button id="start-btn">CLIQUE AQUI PARA INICIAR O PAINEL</button>
+    <p style="margin-top: 20px; font-size: 14px; color: #888;">(Necessário para ativar proteção anti-sleep)</p>
+  </div>
 
-  <!-- Video para atividade de midia -->
-  <video id="keepalive-video" muted loop playsinline autoplay>
+  <div id="debug-status" class="pos-center">Aguardando Inicialização...</div>
+
+  <video id="keepalive-video" muted loop playsinline>
     <source src="VideoTelaPreta.mp4" type="video/mp4">
     <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
   </video>
 
-  <!-- Audio silencioso para atividade sonora -->
   <audio id="keepalive-audio" loop>
     <source src="data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" type="audio/wav">
   </audio>
@@ -109,10 +142,11 @@
     var statusEl = document.getElementById('debug-status');
     var video = document.getElementById('keepalive-video');
     var audio = document.getElementById('keepalive-audio');
+    var splash = document.getElementById('splash-screen');
     
-    var lastWakeLockStatus = "Aguardando Clique...";
-    var lastVideoStatus = "Aguardando Clique...";
-    var lastAudioStatus = "Aguardando Clique...";
+    var lastWakeLockStatus = "Aguardando...";
+    var lastVideoStatus = "Aguardando...";
+    var lastAudioStatus = "Aguardando...";
     var pulseCount = 0;
     var wakeLock = null;
 
@@ -128,7 +162,29 @@
       updateDisplay();
     }
 
-    // --- LOGICA DE ALTERNANCIA DE FRAMES ---
+    function iniciarPainel() {
+      // 1. Remover Splash
+      splash.style.display = 'none';
+      
+      // 2. Ativar WakeLock
+      requestWakeLock();
+      
+      // 3. Ativar Midia
+      video.play()
+        .then(function() { logStatus('video', "Rodando ✅"); })
+        .catch(function() { logStatus('video', "Erro ❌"); });
+      
+      audio.play()
+        .then(function() { logStatus('audio', "Ativo ✅"); })
+        .catch(function() { logStatus('audio', "Erro ❌"); });
+      
+      // 4. Iniciar Ciclo de Frames
+      setTimeout(alternar, 5000);
+      setInterval(simulateActivity, 20000);
+      
+      logStatus('system', "Iniciado");
+    }
+
     var frames = [
       { id: "frame1", tempo: 60000, pos: "pos-center" },
       { id: "frame2", tempo: 45000, pos: "pos-right" },
@@ -147,7 +203,6 @@
       setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
 
-    // --- LOGICA ANTI-SLEEP ---
     function requestWakeLock() {
       if (!navigator.wakeLock) {
         logStatus('wakelock', "Não suportado ❌");
@@ -165,47 +220,19 @@
         });
     }
 
-    function activateMedia() {
-      // Ativar Video
-      video.play()
-        .then(function() { logStatus('video', "Rodando ✅"); })
-        .catch(function() { logStatus('video', "Erro ❌"); });
-      
-      // Ativar Audio (Silencioso)
-      audio.play()
-        .then(function() { logStatus('audio', "Ativo ✅"); })
-        .catch(function() { logStatus('audio', "Erro ❌"); });
-    }
-
     function simulateActivity() {
       pulseCount++;
-      
-      // 1. Simular Eventos
       try {
         window.dispatchEvent(new MouseEvent('mousemove'));
         window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Control'}));
       } catch(e) {}
-      
-      // 2. Agitar Background (Invisivel)
       document.body.style.backgroundColor = (pulseCount % 2 === 0) ? "#010101" : "#000000";
-      
-      // 3. Jitter de Hash
       try { history.replaceState(null, null, "#" + pulseCount); } catch(e) {}
-
       updateDisplay();
     }
 
     window.onload = function() {
-      setTimeout(alternar, 5000);
-      setInterval(simulateActivity, 20000);
       updateDisplay();
-    };
-
-    // O GATILHO PRINCIPAL: Clique do usuario
-    document.onclick = function() {
-      logStatus('wakelock', "Iniciando...");
-      requestWakeLock();
-      activateMedia();
     };
   </script>
 </body>
