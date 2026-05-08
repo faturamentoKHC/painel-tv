@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v2.6</title>
+  <title>Painel TV - Anti-Sleep v2.7</title>
 
   <style>
     html,
@@ -34,19 +34,19 @@
       transition: opacity 0.8s ease-in-out;
     }
 
+    .frame.ativo {
+      opacity: 1;
+      z-index: 2;
+    }
+
     .frame iframe {
       width: 100%;
       height: 100%;
       border: 0;
     }
 
-    .frame.ativo {
-      opacity: 1;
-      z-index: 2;
-    }
-
-    /* Video em tela cheia NO FUNDO */
-    #keepalive {
+    /* Video de fundo em tela cheia */
+    #keepalive-video {
       position: fixed;
       top: 0;
       left: 0;
@@ -54,25 +54,13 @@
       height: 100%;
       object-fit: cover;
       z-index: -1;
-      opacity: 0.1; /* Levemente visivel no fundo preto */
-    }
-
-    /* Canvas para agitar a GPU */
-    #gpu-jitter {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 1px;
-      height: 1px;
-      z-index: 10001;
-      opacity: 0.01;
-      pointer-events: none;
+      opacity: 0.05;
     }
 
     #debug-status {
       position: absolute;
-      padding: 6px 15px;
-      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 16px;
+      background: rgba(0, 0, 0, 0.8);
       color: #00ff00;
       font-size: 12px;
       z-index: 10000;
@@ -80,7 +68,7 @@
       pointer-events: none;
       transition: all 0.5s ease;
       white-space: pre;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      border: 1px solid rgba(0,255,0,0.2);
     }
 
     .pos-center { bottom: 15px; left: 50%; transform: translateX(-50%); }
@@ -90,13 +78,18 @@
 
 <body>
 
-  <div id="debug-status" class="pos-center">Iniciando...</div>
-  <canvas id="gpu-jitter"></canvas>
+  <div id="debug-status" class="pos-center">Aguardando Interação... (Clique na tela)</div>
 
-  <video id="keepalive" muted loop playsinline autoplay>
+  <!-- Video para atividade de midia -->
+  <video id="keepalive-video" muted loop playsinline autoplay>
     <source src="VideoTelaPreta.mp4" type="video/mp4">
     <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
   </video>
+
+  <!-- Audio silencioso para atividade sonora -->
+  <audio id="keepalive-audio" loop>
+    <source src="data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" type="audio/wav">
+  </audio>
 
   <div id="container">
     <div class="frame ativo" id="frame1">
@@ -114,35 +107,28 @@
 
   <script>
     var statusEl = document.getElementById('debug-status');
-    var canvas = document.getElementById('gpu-jitter');
-    var ctx = canvas.getContext('2d');
-    var lastWakeLockStatus = "Aguardando...";
-    var lastVideoStatus = "Aguardando...";
+    var video = document.getElementById('keepalive-video');
+    var audio = document.getElementById('keepalive-audio');
+    
+    var lastWakeLockStatus = "Aguardando Clique...";
+    var lastVideoStatus = "Aguardando Clique...";
+    var lastAudioStatus = "Aguardando Clique...";
     var pulseCount = 0;
     var wakeLock = null;
 
     function updateDisplay() {
       var now = new Date().toLocaleTimeString();
-      statusEl.innerText = "[" + now + "] P" + pulseCount + "\nWakeLock: " + lastWakeLockStatus + "\nVídeo: " + lastVideoStatus;
+      statusEl.innerText = "[" + now + "] P" + pulseCount + "\nWakeLock: " + lastWakeLockStatus + "\nVídeo: " + lastVideoStatus + " | Áudio: " + lastAudioStatus;
     }
 
     function logStatus(type, msg) {
       if (type === 'wakelock') lastWakeLockStatus = msg;
       if (type === 'video') lastVideoStatus = msg;
+      if (type === 'audio') lastAudioStatus = msg;
       updateDisplay();
     }
 
-    // --- AGITAÇÃO DE GPU (Canvas) ---
-    function jitterGPU() {
-      if (ctx) {
-        ctx.fillStyle = pulseCount % 2 === 0 ? "#010101" : "#000000";
-        ctx.fillRect(0, 0, 1, 1);
-      }
-      requestAnimationFrame(jitterGPU);
-    }
-    jitterGPU();
-
-    // --- ALTERNANCIA DE FRAMES ---
+    // --- LOGICA DE ALTERNANCIA DE FRAMES ---
     var frames = [
       { id: "frame1", tempo: 60000, pos: "pos-center" },
       { id: "frame2", tempo: 45000, pos: "pos-right" },
@@ -179,36 +165,49 @@
         });
     }
 
-    function startVideo() {
-      var v = document.getElementById("keepalive");
-      if (v) {
-        v.play()
-          .then(function() { logStatus('video', "Rodando ✅"); })
-          .catch(function(e) { logStatus('video', "Bloqueado ❌"); });
-      }
+    function activateMedia() {
+      // Ativar Video
+      video.play()
+        .then(function() { logStatus('video', "Rodando ✅"); })
+        .catch(function() { logStatus('video', "Erro ❌"); });
+      
+      // Ativar Audio (Silencioso)
+      audio.play()
+        .then(function() { logStatus('audio', "Ativo ✅"); })
+        .catch(function() { logStatus('audio', "Erro ❌"); });
+    }
+
+    function simulateActivity() {
+      pulseCount++;
+      
+      // 1. Simular Eventos
+      try {
+        window.dispatchEvent(new MouseEvent('mousemove'));
+        window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Control'}));
+      } catch(e) {}
+      
+      // 2. Agitar Background (Invisivel)
+      document.body.style.backgroundColor = (pulseCount % 2 === 0) ? "#010101" : "#000000";
+      
+      // 3. Jitter de Hash
+      try { history.replaceState(null, null, "#" + pulseCount); } catch(e) {}
+
+      updateDisplay();
     }
 
     window.onload = function() {
-      requestWakeLock();
-      startVideo();
       setTimeout(alternar, 5000);
-
-      setInterval(function() {
-        pulseCount++;
-        if (!wakeLock) requestWakeLock();
-        
-        // Atividade extra: Simular micro-scroll (invisivel mas conta como atividade)
-        window.scrollBy(0, 1);
-        window.scrollBy(0, -1);
-        
-        updateDisplay();
-      }, 20000);
+      setInterval(simulateActivity, 20000);
+      updateDisplay();
     };
 
+    // O GATILHO PRINCIPAL: Clique do usuario
     document.onclick = function() {
+      logStatus('wakelock', "Iniciando...");
       requestWakeLock();
-      startVideo();
+      activateMedia();
     };
   </script>
 </body>
+
 </html>
