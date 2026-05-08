@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v3.1</title>
+  <title>Painel TV - Anti-Sleep v3.2</title>
 
   <style>
     html,
@@ -73,12 +73,13 @@
       border: 0;
     }
 
+    /* Video de fundo forçado a cobrir tudo */
     #keepalive-video {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       object-fit: cover;
       z-index: -1;
       opacity: 0.05;
@@ -89,13 +90,14 @@
       padding: 8px 16px;
       background: rgba(0, 0, 0, 0.8);
       color: #00ff00;
-      font-size: 12px;
+      font-size: 13px;
       z-index: 10000;
       border-radius: 8px;
       pointer-events: none;
       transition: all 0.5s ease;
       white-space: pre;
       border: 1px solid rgba(0,255,0,0.2);
+      font-family: monospace;
     }
 
     .pos-center { bottom: 15px; left: 50%; transform: translateX(-50%); }
@@ -108,10 +110,10 @@
   <div id="splash-screen" onclick="iniciarPainel()">
     <img src="https://www.kraftheinzcompany.com/images/logo_main.png" alt="Logo" style="max-width: 200px; margin-bottom: 30px;">
     <button id="start-btn">CLIQUE AQUI PARA INICIAR O PAINEL</button>
-    <p style="margin-top: 20px; font-size: 14px; color: #888;">(V3.1 - Web Audio Silence)</p>
+    <p style="margin-top: 20px; font-size: 14px; color: #888;">(V3.2 - Clock & Frame Pulse)</p>
   </div>
 
-  <div id="debug-status" class="pos-center">Aguardando Inicialização...</div>
+  <div id="debug-status" class="pos-center">Aguardando...</div>
 
   <video id="keepalive-video" muted loop playsinline>
     <source src="VideoTelaPreta.mp4" type="video/mp4">
@@ -136,6 +138,7 @@
     var statusEl = document.getElementById('debug-status');
     var video = document.getElementById('keepalive-video');
     var splash = document.getElementById('splash-screen');
+    var container = document.getElementById('container');
     
     var lastWakeLockStatus = "Aguardando...";
     var lastVideoStatus = "Aguardando...";
@@ -144,8 +147,12 @@
     var wakeLock = null;
 
     function updateDisplay() {
-      var now = new Date().toLocaleTimeString();
-      statusEl.innerText = "[" + now + "] P" + pulseCount + "\nWakeLock: " + lastWakeLockStatus + "\nVídeo: " + lastVideoStatus + " | Áudio: " + lastAudioStatus;
+      var now = new Date();
+      var timeStr = now.getHours().toString().padStart(2, '0') + ":" + 
+                    now.getMinutes().toString().padStart(2, '0') + ":" + 
+                    now.getSeconds().toString().padStart(2, '0');
+      
+      statusEl.innerText = "[" + timeStr + "] Pulse: " + pulseCount + "\nWakeLock: " + lastWakeLockStatus + "\nVídeo: " + lastVideoStatus + " | Áudio: " + lastAudioStatus;
     }
 
     function logStatus(type, msg) {
@@ -158,58 +165,51 @@
     function iniciarPainel() {
       splash.style.display = 'none';
       
-      logStatus('video', "Iniciando...");
-      logStatus('audio', "Iniciando...");
-      logStatus('wakelock', "Solicitando...");
-
-      // 1. Video
-      video.play()
-        .then(function() { logStatus('video', "Rodando ✅"); })
-        .catch(function() { logStatus('video', "Erro ❌"); });
+      // 1. Ativar Video
+      video.play().then(function() { logStatus('video', "Rodando ✅"); }).catch(function() { logStatus('video', "Erro ❌"); });
       
-      // 2. Audio Sintético (Web Audio API)
+      // 2. Ativar Áudio Sintético
       try {
         var AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) {
           var audioCtx = new AudioContext();
-          // Criar um oscilador silencioso
           var oscillator = audioCtx.createOscillator();
           var gainNode = audioCtx.createGain();
-          gainNode.gain.value = 0.001; // Quase zero
+          gainNode.gain.value = 0.001;
           oscillator.connect(gainNode);
           gainNode.connect(audioCtx.destination);
           oscillator.start();
-          logStatus('audio', "Sintético Ativo ✅");
-        } else {
-          logStatus('audio', "Não suportado ❌");
+          logStatus('audio', "Ativo ✅");
         }
-      } catch(e) {
-        logStatus('audio', "Erro: " + e.message);
-      }
+      } catch(e) { logStatus('audio', "Erro"); }
 
-      // 3. WakeLock
+      // 3. Ativar WakeLock
       if (navigator.wakeLock) {
         navigator.wakeLock.request('screen').then(function(lock) {
           wakeLock = lock;
           logStatus('wakelock', "Ativo ✅");
-        }).catch(function(err) {
-          logStatus('wakelock', "Bloqueado ⚠️");
-        });
-      } else {
-        logStatus('wakelock', "Não suportado ❌");
+        }).catch(function() { logStatus('wakelock', "Erro ⚠️"); });
       }
+
+      // 4. Iniciar Ciclos
+      setTimeout(alternar, 5000);
       
-      setTimeout(function() {
-          alternar();
-          setInterval(simulateActivity, 20000);
-      }, 3000);
+      // Loop de atualização do relógio (segundo a segundo)
+      setInterval(function() {
+        updateDisplay();
+      }, 1000);
+
+      // Loop de atividade extra (a cada 20s)
+      setInterval(simulateActivity, 20000);
     }
 
     function simulateActivity() {
       pulseCount++;
-      document.body.style.backgroundColor = (pulseCount % 2 === 0) ? "#010101" : "#000000";
+      
+      // Pulso de opacidade nos frames para evitar suspensão do browser
+      container.style.opacity = (container.style.opacity == "0.99") ? "1" : "0.99";
+      
       try { history.replaceState(null, null, "#" + pulseCount); } catch(e) {}
-      updateDisplay();
     }
 
     var frames = [
@@ -226,7 +226,6 @@
       var proximo = document.getElementById(frames[currentFrameIndex].id);
       if (proximo) proximo.classList.add("ativo");
       statusEl.className = frames[currentFrameIndex].pos;
-      updateDisplay();
       setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
 
