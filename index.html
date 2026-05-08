@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Painel TV - Anti-Sleep v2.9</title>
+  <title>Painel TV - Anti-Sleep v3.0</title>
 
   <style>
     html,
@@ -108,7 +108,7 @@
   <div id="splash-screen" onclick="iniciarPainel()">
     <img src="https://www.kraftheinzcompany.com/images/logo_main.png" alt="Logo" style="max-width: 200px; margin-bottom: 30px;">
     <button id="start-btn">CLIQUE AQUI PARA INICIAR O PAINEL</button>
-    <p style="margin-top: 20px; font-size: 14px; color: #888;">(V2.9 - Estabilização de Sinais)</p>
+    <p style="margin-top: 20px; font-size: 14px; color: #888;">(V3.0 - Ativação Síncrona)</p>
   </div>
 
   <div id="debug-status" class="pos-center">Aguardando Inicialização...</div>
@@ -161,62 +161,41 @@
     }
 
     function iniciarPainel() {
+      // 1. Ocultar splash IMEDIATAMENTE
       splash.style.display = 'none';
-      logStatus('system', "Iniciando...");
-
-      // 1. Iniciar Video (Geralmente o mais suportado)
-      video.play()
-        .then(function() { logStatus('video', "Rodando ✅"); })
-        .catch(function() { logStatus('video', "Erro ❌"); });
-
-      // 2. Iniciar Audio após 800ms
-      setTimeout(function() {
-        audio.play()
-          .then(function() { logStatus('audio', "Ativo ✅"); })
-          .catch(function() { logStatus('audio', "Bloqueado ❌"); });
-      }, 800);
-
-      // 3. Iniciar WakeLock após 1.5s com Timeout de segurança
-      setTimeout(function() {
-        requestWakeLock();
-      }, 1500);
       
-      // 4. Iniciar Ciclo de Frames e Atividade
-      setTimeout(alternar, 5000);
-      setInterval(simulateActivity, 20000);
-    }
-
-    function requestWakeLock() {
-      if (!navigator.wakeLock) {
-        logStatus('wakelock', "Não suportado ❌");
-        return;
-      }
+      // 2. TENTAR TUDO SINCRONAMENTE NO CLIQUE
       logStatus('wakelock', "Solicitando...");
-      
-      var lockTimeout = setTimeout(function() {
-        if (lastWakeLockStatus === "Solicitando...") {
-          logStatus('wakelock', "Timeout ⚠️");
-        }
-      }, 6000);
+      logStatus('video', "Iniciando...");
+      logStatus('audio', "Iniciando...");
 
-      navigator.wakeLock.request('screen')
-        .then(function(lock) {
-          clearTimeout(lockTimeout);
+      // Video
+      video.play().then(function() { logStatus('video', "Rodando ✅"); }).catch(function() { logStatus('video', "Erro ❌"); });
+      
+      // Audio
+      audio.play().then(function() { logStatus('audio', "Ativo ✅"); }).catch(function() { logStatus('audio', "Erro ❌"); });
+
+      // WakeLock
+      if (navigator.wakeLock) {
+        navigator.wakeLock.request('screen').then(function(lock) {
           wakeLock = lock;
           logStatus('wakelock', "Ativo ✅");
-          wakeLock.onrelease = function() { logStatus('wakelock', "Liberado ⚠️"); wakeLock = null; };
-        })
-        .catch(function(err) {
-          clearTimeout(lockTimeout);
-          logStatus('wakelock', "Erro: " + err.message);
+        }).catch(function(err) {
+          logStatus('wakelock', "Bloqueado/Erro ⚠️");
         });
+      } else {
+        logStatus('wakelock', "Não suportado ❌");
+      }
+      
+      // 3. Iniciar Ciclos após as permissões
+      setTimeout(function() {
+          alternar();
+          setInterval(simulateActivity, 20000);
+      }, 3000);
     }
 
     function simulateActivity() {
       pulseCount++;
-      try {
-        window.dispatchEvent(new MouseEvent('mousemove'));
-      } catch(e) {}
       document.body.style.backgroundColor = (pulseCount % 2 === 0) ? "#010101" : "#000000";
       try { history.replaceState(null, null, "#" + pulseCount); } catch(e) {}
       updateDisplay();
