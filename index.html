@@ -134,11 +134,6 @@
   <div id="debug-status" class="pos-center">Aguardando Inicialização...</div>
   <div id="motion-dot"></div>
 
-  <video id="keepalive-video" muted loop playsinline>
-    <source src="VideoTelaPreta.mp4" type="video/mp4">
-    <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
-  </video>
-
   <div id="container">
     <div class="frame ativo" id="frameA">
       <iframe id="iframeA" src="about:blank"></iframe>
@@ -151,12 +146,11 @@
 
   <script>
     var statusEl = document.getElementById('debug-status');
-    var video = document.getElementById('keepalive-video');
     var splash = document.getElementById('splash-screen');
     var dot = document.getElementById('motion-dot');
     
     var lastWakeLockStatus = "Aguardando...";
-    var lastVideoStatus = "Aguardando...";
+    var lastVideoStatus = "Desativado";
     var lastAudioStatus = "Aguardando...";
     var pulseCount = 0;
     var wakeLock = null;
@@ -192,12 +186,7 @@
     function iniciarPainel() {
       splash.style.display = 'none';
       
-      // 1. Video
-      video.play()
-        .then(function() { logStatus('video', "Rodando ✅"); })
-        .catch(function() { logStatus('video', "Erro ❌"); });
-      
-      // 2. Audio Sintetico
+      // 1. Audio Sintetico
       try {
         var AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) {
