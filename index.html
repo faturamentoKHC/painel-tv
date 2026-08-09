@@ -231,7 +231,6 @@
       // Força reflow seguro sem esconder a tela
       dot.style.opacity = dot.style.opacity === '0.4' ? '0.39' : '0.4';
       dot.getBoundingClientRect();
-      try { history.replaceState(null, null, location.pathname + '?t=' + pulseCount); } catch(e) {}
       // Reacquire WakeLock se perdido
       if (navigator.wakeLock && (!wakeLock || wakeLock.released)) {
         navigator.wakeLock.request('screen').then(function(lock) {
