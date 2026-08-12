@@ -111,6 +111,13 @@
 
     .pos-center { bottom: 10px; left: 50%; transform: translateX(-50%); }
     .pos-right { bottom: 10px; right: 10px; transform: none; left: auto; }
+
+    /* Torna o depurador mais visível em dashboards muito claros */
+    #debug-status.escuro {
+      background: rgba(0, 0, 0, 0.75) !important;
+      opacity: 0.9 !important;
+      border: 1px solid rgba(0, 255, 0, 0.3) !important;
+    }
   </style>
 </head>
 
@@ -257,7 +264,14 @@
       var atual = document.getElementById(frames[anteriorIndex].id);
       if (atual) atual.classList.remove("ativo");
       
-      statusEl.className = frames[currentFrameIndex].pos;
+      // Controla dinamicamente a opacidade do depurador de status
+      if (proximoId === "frame1" || proximoId === "frame3") {
+        statusEl.classList.add("escuro");
+      } else {
+        statusEl.classList.remove("escuro");
+      }
+      
+      statusEl.className = frames[currentFrameIndex].pos + (statusEl.classList.contains("escuro") ? " escuro" : "");
       setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
 
