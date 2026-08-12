@@ -140,12 +140,12 @@
     </div>
     <!-- Painel 2 (exibido como imagem estática leve da VM) -->
     <div class="frame" id="frame2">
-      <img src="painel2.png" style="width: 100vw; height: 100vh; object-fit: contain; background: black;" alt="Painel 2">
+      <img src="app/painel2.png" style="width: 100vw; height: 100vh; object-fit: contain; background: black;" alt="Painel 2">
     </div>
 
     <!-- Painel 3 (exibido como imagem estática leve da VM) -->
     <div class="frame" id="frame3">
-      <img src="painel3.png" style="width: 100vw; height: 100vh; object-fit: contain; background: black;" alt="Painel 3">
+      <img src="app/painel3.png" style="width: 100vw; height: 100vh; object-fit: contain; background: black;" alt="Painel 3">
     </div>
   </div>
 
@@ -246,10 +246,10 @@
       // Atualiza as imagens adicionando timestamp para evitar que a TV use cache antigo
       if (proximoId === "frame2") {
         var img = proximo.querySelector("img");
-        if (img) img.src = "painel2.png?t=" + new Date().getTime();
+        if (img) img.src = "app/painel2.png?t=" + new Date().getTime();
       } else if (proximoId === "frame3") {
         var img = proximo.querySelector("img");
-        if (img) img.src = "painel3.png?t=" + new Date().getTime();
+        if (img) img.src = "app/painel3.png?t=" + new Date().getTime();
       }
 
       if (proximo) proximo.classList.add("ativo");
