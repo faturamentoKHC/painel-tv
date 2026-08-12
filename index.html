@@ -264,13 +264,14 @@
       var atual = document.getElementById(frames[anteriorIndex].id);
       if (atual) atual.classList.remove("ativo");
       
+
       // Controla dinamicamente a opacidade do depurador de status
-      if (proximoId === "frame1" || proximoId === "frame3") {
+      if (proximoId === "frame1" || proximoId === "frame2") {
         statusEl.classList.add("escuro");
       } else {
         statusEl.classList.remove("escuro");
       }
-      
+
       statusEl.className = frames[currentFrameIndex].pos + (statusEl.classList.contains("escuro") ? " escuro" : "");
       setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
