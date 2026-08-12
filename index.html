@@ -58,7 +58,6 @@
       height: 100%;
       opacity: 0;
       z-index: 1;
-      transition: opacity 0.8s ease-in-out;
     }
 
     .frame.ativo {
@@ -134,33 +133,29 @@
   <div id="debug-status" class="pos-center">Aguardando Inicialização...</div>
   <div id="motion-dot"></div>
 
-  <video id="keepalive-video" muted loop playsinline>
-    <source src="VideoTelaPreta.mp4" type="video/mp4">
-    <source src="https://faturamentokhc.github.io/painel-tv/VideoTelaPreta.mp4" type="video/mp4">
-  </video>
-
   <div id="container">
+    <!-- Painel com animações (rodando no iframe ativo) -->
     <div class="frame ativo" id="frame1">
-      <iframe src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/97aef351-f78f-4762-918c-56683f53afad?hidenavbar=true"></iframe>
+      <iframe src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/2565085e-7689-4bea-ad71-8a089d220c33?tenantId=3ce34e42-c07d-47bb-b72a-4ce606de6b88&hint=876d03ad-c2ca-4368-9e6f-f57f9719e2e7&sourcetime=1754761489227&hidenavbar=true#"></iframe>
     </div>
-
+    <!-- Painel 2 (exibido como imagem estática leve da VM) -->
     <div class="frame" id="frame2">
-      <iframe src="https://faturamentokhc.github.io/painel-tv/Launcher_App.html"></iframe>
+      <img src="painel2.png" style="width: 100vw; height: 100vh; object-fit: contain; background: black;" alt="Painel 2">
     </div>
 
+    <!-- Painel 3 (exibido como imagem estática leve da VM) -->
     <div class="frame" id="frame3">
-      <iframe src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/eb6365e3-378a-431e-81c5-c89195d04272?hidenavbar=true"></iframe>
+      <img src="painel3.png" style="width: 100vw; height: 100vh; object-fit: contain; background: black;" alt="Painel 3">
     </div>
   </div>
 
   <script>
     var statusEl = document.getElementById('debug-status');
-    var video = document.getElementById('keepalive-video');
     var splash = document.getElementById('splash-screen');
     var dot = document.getElementById('motion-dot');
     
     var lastWakeLockStatus = "Aguardando...";
-    var lastVideoStatus = "Aguardando...";
+    var lastVideoStatus = "Desativado";
     var lastAudioStatus = "Aguardando...";
     var pulseCount = 0;
     var wakeLock = null;
@@ -184,12 +179,7 @@
     function iniciarPainel() {
       splash.style.display = 'none';
       
-      // 1. Video
-      video.play()
-        .then(function() { logStatus('video', "Rodando ✅"); })
-        .catch(function() { logStatus('video', "Erro ❌"); });
-      
-      // 2. Audio Sintetico
+      // 1. Audio Sintetico
       try {
         var AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) {
@@ -228,10 +218,8 @@
 
     function forceActivity() {
       pulseCount++;
-      // Força reflow seguro sem esconder a tela
       dot.style.opacity = dot.style.opacity === '0.4' ? '0.39' : '0.4';
       dot.getBoundingClientRect();
-      // Reacquire WakeLock se perdido
       if (navigator.wakeLock && (!wakeLock || wakeLock.released)) {
         navigator.wakeLock.request('screen').then(function(lock) {
           wakeLock = lock;
@@ -249,11 +237,26 @@
     var currentFrameIndex = 0;
 
     function alternar() {
-      var atual = document.getElementById(frames[currentFrameIndex].id);
-      if (atual) atual.classList.remove("ativo");
+      var anteriorIndex = currentFrameIndex;
       currentFrameIndex = (currentFrameIndex + 1) % frames.length;
-      var proximo = document.getElementById(frames[currentFrameIndex].id);
+      
+      var proximoId = frames[currentFrameIndex].id;
+      var proximo = document.getElementById(proximoId);
+      
+      // Atualiza as imagens adicionando timestamp para evitar que a TV use cache antigo
+      if (proximoId === "frame2") {
+        var img = proximo.querySelector("img");
+        if (img) img.src = "painel2.png?t=" + new Date().getTime();
+      } else if (proximoId === "frame3") {
+        var img = proximo.querySelector("img");
+        if (img) img.src = "painel3.png?t=" + new Date().getTime();
+      }
+
       if (proximo) proximo.classList.add("ativo");
+      
+      var atual = document.getElementById(frames[anteriorIndex].id);
+      if (atual) atual.classList.remove("ativo");
+      
       statusEl.className = frames[currentFrameIndex].pos;
       setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
@@ -262,7 +265,6 @@
       updateDisplay();
     };
 
-    // Re-acquire WakeLock quando a página volta ao foco (ex: após screensaver da TV)
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible' && navigator.wakeLock && (!wakeLock || wakeLock.released)) {
         navigator.wakeLock.request('screen').then(function(lock) {
@@ -272,5 +274,6 @@
       }
     });
   </script>
+
 </body>
 </html>
