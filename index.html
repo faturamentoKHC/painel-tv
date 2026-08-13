@@ -58,11 +58,18 @@
       height: 100%;
       opacity: 0;
       z-index: 1;
+      transition: opacity 1s ease-in-out;
     }
 
     .frame.ativo {
       opacity: 1;
       z-index: 2;
+    }
+
+    .frame.saindo {
+      opacity: 0;
+      z-index: 2;
+      transition: opacity 1s ease-in-out;
     }
 
     .frame iframe {
@@ -246,11 +253,12 @@
     function alternar() {
       var anteriorIndex = currentFrameIndex;
       currentFrameIndex = (currentFrameIndex + 1) % frames.length;
-      
+
       var proximoId = frames[currentFrameIndex].id;
       var proximo = document.getElementById(proximoId);
-      
-      // Atualiza as imagens adicionando timestamp para evitar que a TV use cache antigo
+      var atual = document.getElementById(frames[anteriorIndex].id);
+
+      // Pré-carrega as imagens antes de mostrar (anti-cache)
       if (proximoId === "frame2") {
         var img = proximo.querySelector("img");
         if (img) img.src = "app/painel2.png?t=" + new Date().getTime();
@@ -259,20 +267,26 @@
         if (img) img.src = "app/painel3.png?t=" + new Date().getTime();
       }
 
-      if (proximo) proximo.classList.add("ativo");
-      
-      var atual = document.getElementById(frames[anteriorIndex].id);
-      if (atual) atual.classList.remove("ativo");
-      
-
-      // Controla dinamicamente a opacidade do depurador de status
-      if (proximoId === "frame1" || proximoId === "frame2") {
-        statusEl.classList.add("escuro");
-      } else {
-        statusEl.classList.remove("escuro");
+      // Fade-out do frame atual
+      if (atual) {
+        atual.classList.add("saindo");
+        atual.classList.remove("ativo");
       }
 
-      statusEl.className = frames[currentFrameIndex].pos + (statusEl.classList.contains("escuro") ? " escuro" : "");
+      // Após 1s (duração do fade-out), exibe o próximo
+      setTimeout(function() {
+        if (atual) atual.classList.remove("saindo");
+        if (proximo) proximo.classList.add("ativo");
+
+        // Controla opacidade do depurador
+        if (proximoId === "frame1" || proximoId === "frame2") {
+          statusEl.classList.add("escuro");
+        } else {
+          statusEl.classList.remove("escuro");
+        }
+        statusEl.className = frames[currentFrameIndex].pos + (statusEl.classList.contains("escuro") ? " escuro" : "");
+      }, 1000);
+
       setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
 
