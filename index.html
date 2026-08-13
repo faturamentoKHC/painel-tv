@@ -58,7 +58,7 @@
       height: 100%;
       opacity: 0;
       z-index: 1;
-      transition: opacity 1s ease-in-out;
+      transition: opacity 0.4s ease-in-out;
     }
 
     .frame.ativo {
@@ -69,7 +69,7 @@
     .frame.saindo {
       opacity: 0;
       z-index: 2;
-      transition: opacity 1s ease-in-out;
+      transition: opacity 0.4s ease-in-out;
     }
 
     .frame iframe {
@@ -285,7 +285,7 @@
           statusEl.classList.remove("escuro");
         }
         statusEl.className = frames[currentFrameIndex].pos + (statusEl.classList.contains("escuro") ? " escuro" : "");
-      }, 1000);
+      }, 400);
 
       setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
