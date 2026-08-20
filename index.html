@@ -153,14 +153,14 @@
     <div class="frame ativo" id="frame1">
       <iframe src="https://apps.powerapps.com/play/e/default-3ce34e42-c07d-47bb-b72a-4ce606de6b88/a/2565085e-7689-4bea-ad71-8a089d220c33?tenantId=3ce34e42-c07d-47bb-b72a-4ce606de6b88&hint=876d03ad-c2ca-4368-9e6f-f57f9719e2e7&sourcetime=1754761489227&hidenavbar=true#"></iframe>
     </div>
-    <!-- Painel 2 (exibido como imagem estática leve da VM) -->
+    <!-- Painel 2 (exibido como imagem estática leve da VM via Nginx) -->
     <div class="frame" id="frame2">
-      <img src="https://raw.githubusercontent.com/faturamentokhc/painel-tv/main/app/painel2.png" style="width: 100vw; height: 100vh; object-fit: fill; background: black;" alt="Painel 2">
+      <img src="http://163.176.2.107/painel2.png" style="width: 100vw; height: 100vh; object-fit: fill; background: black;" alt="Painel 2">
     </div>
 
-    <!-- Painel 3 (exibido como imagem estática leve da VM) -->
+    <!-- Painel 3 (exibido como imagem estática leve da VM via Nginx) -->
     <div class="frame" id="frame3">
-      <img src="https://raw.githubusercontent.com/faturamentokhc/painel-tv/main/app/painel3.png" style="width: 100vw; height: 100vh; object-fit: fill; background: black;" alt="Painel 3">
+      <img src="http://163.176.2.107/painel3.png" style="width: 100vw; height: 100vh; object-fit: fill; background: black;" alt="Painel 3">
     </div>
   </div>
 
@@ -258,13 +258,13 @@
       var proximo = document.getElementById(proximoId);
       var atual = document.getElementById(frames[anteriorIndex].id);
 
-      // Atualiza as imagens apontando diretamente para o link RAW do GitHub (0s de delay de deploy)
+      // Atualiza as imagens buscando diretamente do servidor Web ultra-rápido da VM (0s de delay)
       if (proximoId === "frame2") {
         var img = proximo.querySelector("img");
-        if (img) img.src = "https://raw.githubusercontent.com/faturamentokhc/painel-tv/main/app/painel2.png?t=" + new Date().getTime();
+        if (img) img.src = "http://163.176.2.107/painel2.png?t=" + new Date().getTime();
       } else if (proximoId === "frame3") {
         var img = proximo.querySelector("img");
-        if (img) img.src = "https://raw.githubusercontent.com/faturamentokhc/painel-tv/main/app/painel3.png?t=" + new Date().getTime();
+        if (img) img.src = "http://163.176.2.107/painel3.png?t=" + new Date().getTime();
       }
 
       // Fade-out do frame atual
