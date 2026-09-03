@@ -109,11 +109,13 @@
       font-size: 10px;
       z-index: 26000;
       border-radius: 6px;
-      pointer-events: none;
+      pointer-events: auto;
+      cursor: pointer;
       white-space: pre;
       font-family: monospace;
       border: 1px solid rgba(0, 255, 0, 0.1);
       opacity: 0.5;
+      user-select: none;
     }
 
     .pos-center { bottom: 10px; left: 50%; transform: translateX(-50%); }
@@ -249,8 +251,11 @@
       { id: "frame3", tempo: 30000, pos: "pos-center" }
     ];
     var currentFrameIndex = 0;
+    var alternarTimer = null;
 
     function alternar() {
+      if (alternarTimer) clearTimeout(alternarTimer);
+
       var anteriorIndex = currentFrameIndex;
       currentFrameIndex = (currentFrameIndex + 1) % frames.length;
 
@@ -273,7 +278,7 @@
         atual.classList.remove("ativo");
       }
 
-      // Após 1s (duração do fade-out), exibe o próximo
+      // Após 400ms (duração do fade-out), exibe o próximo
       setTimeout(function() {
         if (atual) atual.classList.remove("saindo");
         if (proximo) proximo.classList.add("ativo");
@@ -287,8 +292,14 @@
         statusEl.className = frames[currentFrameIndex].pos + (statusEl.classList.contains("escuro") ? " escuro" : "");
       }, 400);
 
-      setTimeout(alternar, frames[currentFrameIndex].tempo);
+      alternarTimer = setTimeout(alternar, frames[currentFrameIndex].tempo);
     }
+
+    document.addEventListener('click', function(e) {
+      // Ignora se a tela de splash ainda estiver visível (o primeiro clique serve para iniciar)
+      if (splash.style.display !== 'none') return;
+      alternar();
+    });
 
     window.onload = function() {
       updateDisplay();
