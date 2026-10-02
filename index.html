@@ -234,6 +234,30 @@
       setTimeout(alternar, 5000);
       setInterval(function() { updateDisplay(); moveDot(); }, 1000);
       setInterval(forceActivity, 30000);
+      setInterval(checkMidnightReload, 60000); // Verifica a cada 1 minuto se é 00:01
+    }
+
+    var reloadedToday = false;
+
+    function checkMidnightReload() {
+      var now = new Date();
+      var hours = now.getHours();
+      var minutes = now.getMinutes();
+
+      // Às 00:01 reseta o iframe do App (frame1)
+      if (hours === 0 && minutes === 1) {
+        if (!reloadedToday) {
+          reloadedToday = true;
+          var iframe = document.querySelector('#frame1 iframe');
+          if (iframe) {
+            var currentSrc = iframe.src.split('?')[0];
+            iframe.src = currentSrc + '?tenantId=3ce34e42-c07d-47bb-b72a-4ce606de6b88&hint=876d03ad-c2ca-4368-9e6f-f57f9719e2e7&sourcetime=' + new Date().getTime() + '&hidenavbar=true#';
+          }
+        }
+      } else {
+        // Reseta a trava durante os outros horários do dia
+        reloadedToday = false;
+      }
     }
 
     function moveDot() {
